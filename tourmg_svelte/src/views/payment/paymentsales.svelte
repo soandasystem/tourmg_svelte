@@ -161,7 +161,21 @@
                 "/flowpagos/continuaflow",
             );
         }
-        return url;
+return url;
+    }
+
+function payWithGateway(gw) {
+        // Guarda el monto a pagar en el storage seguro bajo la variable "mpagar"
+        const ud = secureStorage.getItem("_us_") || {};
+        ud.mpagar = apagar;
+        secureStorage.setItem("_us_", ud);
+        // Redirige a la URL de la pasarela
+        const url = getGatewayActionUrl(gw);
+        if (url.startsWith("http")) {
+            window.location.href = url;
+        } else {
+            navigate(url);
+        }
     }
 
     function getGatewayImage(gw) {
@@ -701,51 +715,41 @@
 
                         {#if gatewaysc.length > 0 && apagar > 0}
                             <div class="row g-3">
-                                {#each gatewaysc as gw}
+{#each gatewaysc as gw}
                                     <div class="col-sm-6">
-                                        <form
-                                            method="post"
-                                            action={gw.gateway_url}
-                                            class="h-100"
+                                        <button
+                                            type="button"
+                                            class="gateway-card-btn w-100 h-100 p-4 d-flex flex-column align-items-center justify-content-center text-center"
+                                            on:click={() => payWithGateway(gw)}
                                         >
-                                            <input
-                                                type="hidden"
-                                                name="mpagar"
-                                                value={apagar}
-                                            />
-                                            <button
-                                                type="submit"
-                                                class="gateway-card-btn w-100 h-100 p-4 d-flex flex-column align-items-center justify-content-center text-center"
+                                            <div
+                                                class="gateway-logo-wrapper mb-3 d-flex align-items-center justify-content-center"
                                             >
-                                                <div
-                                                    class="gateway-logo-wrapper mb-3 d-flex align-items-center justify-content-center"
-                                                >
-                                                    <img
-                                                        src={getGatewayImage(
-                                                            gw,
-                                                        )}
-                                                        alt={gw.gateway_name ||
-                                                            gw.name ||
-                                                            gw.gateway_type}
-                                                        class="gateway-image"
-                                                    />
-                                                </div>
-                                                <span
-                                                    class="gateway-name fw-bold text-dark"
-                                                >
-                                                    {gw.gateway_name ||
+                                                <img
+                                                    src={getGatewayImage(
+                                                        gw,
+                                                    )}
+                                                    alt={gw.gateway_name ||
                                                         gw.name ||
                                                         gw.gateway_type}
-                                                </span>
-                                                <div
-                                                    class="gateway-pay-text mt-2 d-flex align-items-center justify-content-center"
-                                                >
-                                                    <i
-                                                        class="fa fa-external-link ms-1 text-primary"
-                                                    ></i>
-                                                </div>
-                                            </button>
-                                        </form>
+                                                    class="gateway-image"
+                                                />
+                                            </div>
+                                            <span
+                                                class="gateway-name fw-bold text-dark"
+                                            >
+                                                {gw.gateway_name ||
+                                                    gw.name ||
+                                                    gw.gateway_type}
+                                            </span>
+                                            <div
+                                                class="gateway-pay-text mt-2 d-flex align-items-center justify-content-center"
+                                            >
+                                                <i
+                                                    class="fa fa-external-link ms-1 text-primary"
+                                                ></i>
+                                            </div>
+                                        </button>
                                     </div>
                                 {/each}
                             </div>
