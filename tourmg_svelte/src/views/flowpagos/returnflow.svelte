@@ -1,0 +1,238 @@
+<script>
+    export let comprobante = '';
+    export let rut = '';
+    export let fecha = '';
+    export let hora = '';
+    export let transaccion = '';
+    export let monto = '';
+    export let media = '';
+    export let position = ''; // Para saber si es "General" u otra, puedes enviarlo desde tu store o layout
+    
+    // Configura aquí la URL hacia tu backend en Go para descargar el comprobante
+    const API_BASE = '/api/flowpagos'; 
+
+    let downloadForm;
+
+    function handleDownload() {
+        if (downloadForm) {
+            downloadForm.submit();
+        }
+    }
+</script>
+
+<style>
+    /* Estilo general del panel */
+    .panel {
+        margin: 0 auto;
+        float: none;
+        max-width: 90%;
+        width: 40rem;
+        margin-top: 30px;
+        padding: 20px;
+        border-radius: 10px;
+        background-color: #fff;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Títulos del panel */
+    .panel-title {
+        font-size: 28px;
+        color: #48267f;
+        font-weight: bold;
+        line-height: 1.2;
+    }
+
+    /* Estilo del texto del cuerpo del panel */
+    .panel-body {
+        font-size: 18px;
+        color: #48267f;
+        line-height: 1.5;
+        font-weight: normal;
+        padding: 15px 0;
+    }
+
+    /* Estilo para el encabezado de detalles */
+    .panel-heading {
+        font-size: 18px;
+        color: white;
+        background-color: #4d078c;
+        text-align: center;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+
+    /* Tabla de información */
+    .panel-info {
+        font-size: 16px;
+        color: #48267f;
+        line-height: 1.6;
+        font-weight: bold;
+    }
+
+    .panel-info td {
+        border-bottom: 1px solid #e6e6e6;
+        padding: 10px;
+    }
+
+    /* Botones */
+    .btn-container {
+        text-align: center;
+        padding: 20px;
+        margin-top: 30px;
+    }
+
+    .btnn {
+        background-color: #4d078c;
+        color: white;
+        padding: 15px 30px;
+        font-size: 18px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: bold;
+        transition: background-color 0.3s ease;
+        display: inline-block;
+        margin: 0 5px;
+    }
+
+    .btnn:hover {
+        background-color: #6a0e9c;
+        color: white;
+    }
+
+    /* Estilo para las tablas de monto y medio de pago */
+    .panel-monto, .panel-medios {
+        border-radius: 10px;
+        margin-bottom: 15px;
+        width: 100%;
+    }
+
+    .panel-monto td, .panel-medios td {
+        font-size: 16px;
+        padding: 12px;
+        text-align: center;
+    }
+
+    /* Estilo para el fondo del monto pagado */
+    .panel-monto {
+        background-color: #ff0080;
+        color: white;
+    }
+
+    /* Estilo para el fondo del medio de pago */
+    .panel-medios {
+        background-color: #ededed;
+        color: #4d078c;
+    }
+
+    /* Ajustes para pantallas pequeñas */
+    @media (max-width: 600px) {
+        .panel {
+            width: 100%;
+            padding: 15px;
+        }
+
+        .btnn {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+    }
+</style>
+
+<div class="panel text-center">
+    <form bind:this={downloadForm} role="form" method="post" action="{API_BASE}/descargarComprobante" enctype="multipart/form-data">   
+    <div class="panel-body">
+        <!-- Título de la confirmación -->
+        <table width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
+            <tbody>
+                <tr>
+                    <td class="panel-title">CONFIRMACIÓN DE PAGO</td>
+                </tr>
+                <tr>
+                    <td class="panel-body">¡Hola!</td>
+                </tr>
+                <tr>
+                    <td class="panel-body">Tu pago a través de nuestro sitio web fue exitoso.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Detalles del pago -->
+        <table width="100%" cellspacing="0" cellpadding="8" border="0" align="center">
+            <tbody>
+                <tr>
+                    <td class="panel-heading">Este es el detalle:</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Información de la transacción -->
+        <table width="100%" cellspacing="0" cellpadding="8" border="0" align="center">
+            <tbody>
+                <tr>
+                    <td class="panel-info">Número de Comprobante:&nbsp;</td>
+                    <td class="panel-info">{comprobante}</td>
+                </tr>
+                {#if rut && rut !== ''}
+                <tr>
+                    <td class="panel-info">Rut:&nbsp;</td>
+                    <td class="panel-info">{rut}</td>
+                </tr>
+                {/if}
+                <tr>
+                    <td class="panel-info">Fecha de pago:&nbsp;</td>
+                    <td class="panel-info">{fecha}</td>
+                </tr>
+                <tr>
+                    <td class="panel-info">Hora de pago:&nbsp;</td>
+                    <td class="panel-info">{hora}</td>
+                </tr>
+                <tr>
+                    <td class="panel-info">Transacción Nro:&nbsp;</td>
+                    <td class="panel-info">{transaccion}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Monto Pagado -->
+        <table class="panel-monto" cellspacing="0" cellpadding="8" border="0" align="center">
+            <tbody>
+                <tr>
+                    <td>Monto pagado:&nbsp;</td>
+                    <td>{monto}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Medio de Pago -->
+        <table class="panel-medios" cellspacing="0" cellpadding="8" border="0" align="center">
+            <tbody>
+                <tr>
+                    <td>Medio de pago:&nbsp;</td>
+                    <td>{media}</td>
+                </tr>
+            </tbody>
+        </table>
+        
+         <input type="hidden" name="comprobante" value={comprobante}>
+         <input type="hidden" name="rut" value={rut}>
+         <input type="hidden" name="fecha" value={fecha}>
+         <input type="hidden" name="hora" value={hora}>
+         <input type="hidden" name="transaccion" value={transaccion}>
+         <input type="hidden" name="monto" value={monto}>
+         <input type="hidden" name="media" value={media}>
+         
+        <!-- Botón de continuar -->
+        <div class="btn-container">
+            {#if position === 'General'}
+                <!-- Ajusta las rutas según tu frontend -->
+                <a href="/opening" class="btnn">Continuar</a>
+            {:else}
+                <a href="/payment" class="btnn">Continuar</a>
+            {/if}
+            <button type="button" on:click={handleDownload} class="btnn" style="border:none; cursor:pointer;">Descargar</button>
+        </div>
+    </div>
+    </form>
+</div>
