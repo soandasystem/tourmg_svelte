@@ -9,6 +9,10 @@
 import { secureStorage } from "./secureStore";
 import dayjs from "dayjs";
 
+export function uniqid(prefix = "") {
+    return prefix + Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+}
+
 export function getMonthName(monthNumber) {
     const months = [
         "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",

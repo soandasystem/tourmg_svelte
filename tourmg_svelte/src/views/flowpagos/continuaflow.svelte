@@ -3,13 +3,15 @@
     import { fade } from "svelte/transition";
     import { navigate } from "svelte-routing";
     import { secureStorage } from "../../lib/secureStore";
-
-    export let identificador = "";
-    export let fecha = "";
-    export let mpagar = 0;
-    export let valorcuota = 0;
-    export let nrocuotas = 0;
-    export let fechainicial = "";
+    import api from "../../lib/apis.js";
+    import { formatCurrency,formatDate,uniqid} from "../../lib/utils";
+    
+    let hoy = new Date();
+    let fecha = hoy.toISOString().split("T")[0];
+    let valorcuota = 0;
+    let nrocuotas = 0;
+    let fechainicial = "";
+    let identificador= uniqid()
 
     let isLoading = false;
     let errorMessage = "";
@@ -21,6 +23,7 @@
     const saleId = userData.sale || 0;
     const passengersId = userData.id || 0;
     const userrut = userData.userrut || "";
+    const mpagar =userData.mpagar || 0
 
     async function handleSubmit(event) {
         event.preventDefault();
@@ -28,13 +31,9 @@
         errorMessage = "";
 
         try {
-            // Reemplaza esta URL con la ruta correcta hacia tu backend en Go
-            const response = await fetch("/api/v3.5/flow/inicioPagoFlow", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
+            const result = await api.setData(
+                "flow/inicioPagoFlow",
+                JSON.stringify({
                     mpagar: mpagar,
                     valorcuota: valorcuota,
                     nrocuotas: nrocuotas,
@@ -45,17 +44,21 @@
                     curso_id: passengersId,
                     user_rut: userrut,
                 }),
-            });
+                "",
+                "",
+                schemaName,
+            );
 
-            if (!response.ok) {
-                throw new Error("Error al iniciar el pago con Flow");
+            if (result.status !== "success") {
+                throw new Error(
+                    result.message || "Error al iniciar el pago con Flow",
+                );
             }
 
-            const data = await response.json();
-
-            // Asumimos que el backend en Go devuelve la URL de redirección
+            // Asumimos que el backend devuelve la URL de redirección
             // Ejemplo: { "url": "https://www.flow.cl/api/payment/create?token=..." }
-            if (data.url) {
+            const data = result.data;
+            if (data && data.url) {
                 window.location.href = data.url;
             } else {
                 errorMessage =
@@ -67,15 +70,6 @@
         } finally {
             isLoading = false;
         }
-    }
-
-    // Formatear el número a pesos chilenos ($)
-    function formatCurrency(value) {
-        return new Intl.NumberFormat("es-CL", {
-            style: "currency",
-            currency: "CLP",
-            minimumFractionDigits: 0,
-        }).format(value);
     }
 </script>
 

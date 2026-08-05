@@ -1,4 +1,4 @@
-# Etapa 1: Construcción (Build)
+# Etapa 1: Construcción (Build) comienza
 FROM node:22-alpine AS build
 
 # Crear directorio de trabajo
