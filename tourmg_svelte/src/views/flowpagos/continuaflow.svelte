@@ -32,7 +32,7 @@
 
         try {
             const result = await api.setData(
-                "flow/inicioPagoFlow",
+                "iniciopagoflow",
                 JSON.stringify({
                     mpagar: mpagar,
                     valorcuota: valorcuota,
@@ -41,7 +41,7 @@
                     identificador: identificador,
                     company_id: currentCompanyId,
                     sale_id: saleId,
-                    curso_id: passengersId,
+                    curso_id: Number(passengersId),
                     user_rut: userrut,
                 }),
                 "",
@@ -71,6 +71,9 @@
             isLoading = false;
         }
     }
+    function handleBack() {
+        navigate(`/payment/paymentsales`);
+    }
 </script>
 
 <div class="page-wrapper" in:fade={{ duration: 300 }}>
@@ -88,7 +91,7 @@
             <button
                 type="button"
                 class="btn-back"
-                on:click={() => navigate(-1)}
+                 on:click={handleBack}
             >
                 <i class="fa fa-chevron-left me-1"></i> Volver
             </button>

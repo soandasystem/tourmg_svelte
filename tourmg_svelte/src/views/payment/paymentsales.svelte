@@ -166,15 +166,23 @@ return url;
 
 function payWithGateway(gw) {
         // Guarda el monto a pagar en el storage seguro bajo la variable "mpagar"
-        const ud = secureStorage.getItem("_us_") || {};
-        ud.mpagar = apagar;
-        secureStorage.setItem("_us_", ud);
-        // Redirige a la URL de la pasarela
-        const url = getGatewayActionUrl(gw);
-        if (url.startsWith("http")) {
-            window.location.href = url;
-        } else {
-            navigate(url);
+        if ((apagarInput ?? 0) != 0) {
+            const ud = secureStorage.getItem("_us_") || {};
+            ud.mpagar = apagarInput;
+            secureStorage.setItem("_us_", ud);
+            // Redirige a la URL de la pasarela
+            const url = getGatewayActionUrl(gw);
+            if (url.startsWith("http")) {
+                window.location.href = url;
+            } else {
+                navigate(url);
+            }
+        }else{
+            Swal.fire(
+                "Pago",
+                "El Monto a pagar debe ser superios a $500.",
+                "error",
+            );
         }
     }
 

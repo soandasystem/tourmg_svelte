@@ -26,7 +26,7 @@
     $: contratoUrl = rawContratoUrl && rawContratoUrl !== "S"
         ? (rawContratoUrl.startsWith('http')
             ? rawContratoUrl
-            : `${import.meta.env.VITE_RENDER || "https://tourmanager-bnd.onrender.com"}${rawContratoUrl.startsWith('/') ? '' : '/'}${rawContratoUrl}`)
+            : `${import.meta.env.VITE_RENDER || "https://tourmg-go.onrender.com"}${rawContratoUrl.startsWith('/') ? '' : '/'}${rawContratoUrl}`)
         : "";
     $: idcl = $tenantStore || "demo";
 

@@ -24,14 +24,14 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/proxy-api': {
-        target: 'https://tourmanager-bnd.onrender.com',
+        target: 'https://tourmg-go.onrender.com',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/proxy-api/, '/api'),
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq) => {
             // Reemplazar el header Host para que el backend de render.com lo acepte correctamente
-            proxyReq.setHeader('Host', 'tourmanager-bnd.onrender.com');
+            proxyReq.setHeader('Host', 'tourmg-go.onrender.com');
           });
         }
       }

@@ -20,7 +20,7 @@ const getApiEndpoint = () => {
         return apiBaseUrl;
     }
 
-    const renderUrl = import.meta.env.VITE_RENDER || "https://tourmanager-bnd.onrender.com";
+    const renderUrl = import.meta.env.VITE_RENDER || "https://tourmg-go.onrender.com";
     if (renderUrl.includes("/api")) {
         return renderUrl;
     }
@@ -28,7 +28,7 @@ const getApiEndpoint = () => {
 };
 
 export const RENDER_ENDPOINT = getApiEndpoint();
-export const ROOT_URL = import.meta.env.DEV ? "" : `${(import.meta.env.VITE_RENDER || "https://tourmanager-bnd.onrender.com").replace(/\/$/, "")}/`;
+export const ROOT_URL = import.meta.env.DEV ? "" : `${(import.meta.env.VITE_RENDER || "https://tourmg-go.onrender.com").replace(/\/$/, "")}/`;
 
 
 /**
