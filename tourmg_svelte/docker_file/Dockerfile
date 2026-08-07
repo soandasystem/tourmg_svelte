@@ -49,7 +49,7 @@ COPY --from=build /app/dist /usr/share/nginx/html
 #    }\n\
 #}" > /etc/nginx/conf.d/default.conf
 #el run lo reemplace por esta linea
-COPY default.conf /etc/nginx/conf.d/default.conf
+COPY ../default.conf /etc/nginx/conf.d/default.conf
 # Exponer el puerto 80
 EXPOSE 80
 
