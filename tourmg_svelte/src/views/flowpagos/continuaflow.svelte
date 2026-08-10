@@ -48,7 +48,17 @@
                 "",
                 schemaName,
             );
-
+console.log(JSON.stringify({
+                    mpagar: mpagar,
+                    valorcuota: valorcuota,
+                    nrocuotas: nrocuotas,
+                    fechainicial: fechainicial,
+                    identificador: identificador,
+                    company_id: currentCompanyId,
+                    sale_id: saleId,
+                    curso_id: Number(passengersId),
+                    user_rut: userrut,
+                }))
             if (result.status !== "success") {
                 throw new Error(
                     result.message || "Error al iniciar el pago con Flow",
