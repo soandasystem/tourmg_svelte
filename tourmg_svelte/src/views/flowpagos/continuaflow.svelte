@@ -29,7 +29,7 @@
         event.preventDefault();
         isLoading = true;
         errorMessage = "";
-
+        const urlReturn = window.location.origin 
         try {
             const result = await api.setData(
                 "iniciopagoflow",
@@ -43,22 +43,14 @@
                     sale_id: saleId,
                     curso_id: Number(passengersId),
                     user_rut: userrut,
+                    urlreturn: urlReturn + "/api/returnFlow",
+                    urlconfirmation:"https://tourmg-go.onrender.com/api/v3.5/token"
                 }),
                 "",
                 "",
                 schemaName,
             );
-console.log(JSON.stringify({
-                    mpagar: mpagar,
-                    valorcuota: valorcuota,
-                    nrocuotas: nrocuotas,
-                    fechainicial: fechainicial,
-                    identificador: identificador,
-                    company_id: currentCompanyId,
-                    sale_id: saleId,
-                    curso_id: Number(passengersId),
-                    user_rut: userrut,
-                }))
+
             if (result.status !== "success") {
                 throw new Error(
                     result.message || "Error al iniciar el pago con Flow",
@@ -67,9 +59,10 @@ console.log(JSON.stringify({
 
             // Asumimos que el backend devuelve la URL de redirección
             // Ejemplo: { "url": "https://www.flow.cl/api/payment/create?token=..." }
+          
             const data = result.data;
-            if (data && data.url) {
-                window.location.href = data.url;
+            if (data && data.redirect_url) {
+                window.location.href = data.redirect_url; 
             } else {
                 errorMessage =
                     "No se recibió la URL de redirección desde el servidor";
