@@ -1,15 +1,11 @@
 <script>
-    const userData = secureStorage.getItem("_us_") || {};
-    const token = userData.flowt || "";
+    import { onMount } from "svelte";
+    import api from "../../lib/apis.js";
+    import { secureStorage } from "../../lib/secureStore";
 
-    export let comprobante = "";
-    export let rut = "";
-    export let fecha = "";
-    export let hora = "";
-    export let transaccion = "";
-    export let monto = "";
-    export let media = "";
-    export let position = ""; // Para saber si es "General" u otra, puedes enviarlo desde tu store o layout
+    const userData = secureStorage.getItem("_us_") || {};
+    const token = userData.flowt || "F91853D876573BD763C08ABF3F647687AA7AAB8Y";
+    const position = userData.position || "General";
 
     // Configura aquí la URL hacia tu backend en Go para descargar el comprobante
     const API_BASE = "/api/flowpagos";
@@ -18,6 +14,7 @@
         const payload = {
             token: token,
         };
+        console.log("token flow", token);
         const result = await api.setData(
             "consulta-token",
             JSON.stringify(payload),
@@ -38,7 +35,7 @@
             flowData = data.items[0];
         }
     };
-
+    let flowData = null;
     let downloadForm;
 
     function handleDownload() {
@@ -53,168 +50,171 @@
 </script>
 
 <div class="panel text-center">
-    <form
-        bind:this={downloadForm}
-        method="post"
-        action="{API_BASE}/descargarComprobante"
-        enctype="multipart/form-data"
-    >
-        <div class="panel-body">
-            <!-- Título de la confirmación -->
-            <table
-                width="100%"
-                cellspacing="0"
-                cellpadding="0"
-                border="0"
-                align="center"
-            >
-                <tbody>
-                    <tr>
-                        <td class="panel-title">CONFIRMACIÓN DE PAGO</td>
-                    </tr>
-                    <tr>
-                        <td class="panel-body">¡Hola!</td>
-                    </tr>
-                    <tr>
-                        <td class="panel-body"
-                            >Tu pago a través de nuestro sitio web fue exitoso.</td
-                        >
-                    </tr>
-                </tbody>
-            </table>
-
-            <!-- Detalles del pago -->
-            <table
-                width="100%"
-                cellspacing="0"
-                cellpadding="8"
-                border="0"
-                align="center"
-            >
-                <tbody>
-                    <tr>
-                        <td class="panel-heading">Este es el detalle:</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <!-- Información de la transacción -->
-            <table
-                width="100%"
-                cellspacing="0"
-                cellpadding="8"
-                border="0"
-                align="center"
-            >
-                <tbody>
-                    <tr>
-                        <td class="panel-info">Número de Comprobante:&nbsp;</td>
-                        <td class="panel-info">{flowData.commerceOrder}</td>
-                    </tr>
-                    <tr>
-                        <td class="panel-info">Rut:&nbsp;</td>
-                        <td class="panel-info">{flowData.optional.alumno}</td>
-                    </tr>
-                    <tr>
-                        <td class="panel-info">Fecha de pago:&nbsp;</td>
-                        <td class="panel-info"
-                            >{flowData.requestDate
-                                .toISOString()
-                                .split("T")[0]}</td
-                        >
-                    </tr>
-                    <tr>
-                        <td class="panel-info">Hora de pago:&nbsp;</td>
-                        <td class="panel-info"
-                            >{flowData.requestDate
-                                .toISOString()
-                                .split("T")[1]}</td
-                        >
-                    </tr>
-                    <tr>
-                        <td class="panel-info">Transacción Nro:&nbsp;</td>
-                        <td class="panel-info">{flowData.flowOrder}</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <!-- Monto Pagado -->
-            <table
-                class="panel-monto"
-                cellspacing="0"
-                cellpadding="8"
-                border="0"
-                align="center"
-            >
-                <tbody>
-                    <tr>
-                        <td>Monto pagado:&nbsp;</td>
-                        <td>{flowData.amount}</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <!-- Medio de Pago -->
-            <table
-                class="panel-medios"
-                cellspacing="0"
-                cellpadding="8"
-                border="0"
-                align="center"
-            >
-                <tbody>
-                    <tr>
-                        <td>Medio de pago:&nbsp;</td>
-                        <td>{flowData.paymentDat.media}</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <input
-                type="hidden"
-                name="comprobante"
-                value={flowData.commerceOrder}
-            />
-            <input type="hidden" name="rut" value={flowData.optional.alumno} />
-            <input
-                type="hidden"
-                name="fecha"
-                value={flowData.requestDate.toISOString().split("T")[0]}
-            />
-            <input
-                type="hidden"
-                name="hora"
-                value={flowData.requestDate.toISOString().split("T")[1]}
-            />
-            <input
-                type="hidden"
-                name="transaccion"
-                value={flowData.flowOrder}
-            />
-            <input type="hidden" name="monto" value={flowData.amount} />
-            <input
-                type="hidden"
-                name="media"
-                value={flowData.paymentDat.media}
-            />
-
-            <!-- Botón de continuar -->
-            <div class="btn-container">
-                {#if position === "General"}
-                    <!-- Ajusta las rutas según tu frontend -->
-                    <a href="/opening" class="btnn">Continuar</a>
-                {:else}
-                    <a href="/payment" class="btnn">Continuar</a>
-                {/if}
-                <button
-                    type="button"
-                    on:click={handleDownload}
-                    class="btnn"
-                    style="border:none; cursor:pointer;">Descargar</button
+    {#if flowData}
+        <form
+            bind:this={downloadForm}
+            method="post"
+            action="{API_BASE}/descargarComprobante"
+            enctype="multipart/form-data"
+        >
+            <div class="panel-body">
+                <!-- Título de la confirmación -->
+                <table
+                    width="100%"
+                    cellspacing="0"
+                    cellpadding="0"
+                    border="0"
+                    align="center"
                 >
+                    <tbody>
+                        <tr>
+                            <td class="panel-title">CONFIRMACIÓN DE PAGO</td>
+                        </tr>
+                        <tr>
+                            <td class="panel-body">¡Hola!</td>
+                        </tr>
+                        <tr>
+                            <td class="panel-body"
+                                >Tu pago a través de nuestro sitio web fue
+                                exitoso.</td
+                            >
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Detalles del pago -->
+                <table
+                    width="100%"
+                    cellspacing="0"
+                    cellpadding="8"
+                    border="0"
+                    align="center"
+                >
+                    <tbody>
+                        <tr>
+                            <td class="panel-heading">Este es el detalle:</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Información de la transacción -->
+                <table
+                    width="100%"
+                    cellspacing="0"
+                    cellpadding="8"
+                    border="0"
+                    align="center"
+                >
+                    <tbody>
+                        <tr>
+                            <td class="panel-info"
+                                >Número de Comprobante:&nbsp;</td
+                            >
+                            <td class="panel-info">{flowData.commerceOrder}</td>
+                        </tr>
+                        <tr>
+                            <td class="panel-info">Rut:&nbsp;</td>
+                            <td class="panel-info"
+                                >{flowData.optional.alumno}</td
+                            >
+                        </tr>
+                        <tr>
+                            <td class="panel-info">Fecha de pago:&nbsp;</td>
+                            <td class="panel-info">{flowData.requestDate}</td>
+                        </tr>
+                        <tr>
+                            <td class="panel-info">Hora de pago:&nbsp;</td>
+                            <td class="panel-info">{flowData.requestDate}</td>
+                        </tr>
+                        <tr>
+                            <td class="panel-info">Transacción Nro:&nbsp;</td>
+                            <td class="panel-info">{flowData.flowOrder}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Monto Pagado -->
+                <table
+                    class="panel-monto"
+                    cellspacing="0"
+                    cellpadding="8"
+                    border="0"
+                    align="center"
+                >
+                    <tbody>
+                        <tr>
+                            <td>Monto pagado:&nbsp;</td>
+                            <td>{flowData.amount}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Medio de Pago -->
+                <table
+                    class="panel-medios"
+                    cellspacing="0"
+                    cellpadding="8"
+                    border="0"
+                    align="center"
+                >
+                    <tbody>
+                        <tr>
+                            <td>Medio de pago:&nbsp;</td>
+                            <td>{flowData.paymentData.media}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <input
+                    type="hidden"
+                    name="comprobante"
+                    value={flowData.commerceOrder}
+                />
+                <input
+                    type="hidden"
+                    name="rut"
+                    value={flowData.optional.alumno}
+                />
+                <input
+                    type="hidden"
+                    name="fecha"
+                    value={flowData.requestDate}
+                />
+                <input type="hidden" name="hora" value={flowData.requestDate} />
+                <input
+                    type="hidden"
+                    name="transaccion"
+                    value={flowData.flowOrder}
+                />
+                <input type="hidden" name="monto" value={flowData.amount} />
+                <input
+                    type="hidden"
+                    name="media"
+                    value={flowData.paymentData.media}
+                />
+
+                <!-- Botón de continuar -->
+                <div class="btn-container">
+                    {#if position === "General"}
+                        <!-- Ajusta las rutas según tu frontend -->
+                        <a href="/opening" class="btnn">Continuar</a>
+                    {:else}
+                        <a href="/payment" class="btnn">Continuar</a>
+                    {/if}
+                    <button
+                        type="button"
+                        on:click={handleDownload}
+                        class="btnn"
+                        style="border:none; cursor:pointer;">Descargar</button
+                    >
+                </div>
             </div>
+        </form>
+    {:else}
+        <div class="panel-body">
+            <p>Cargando información del pago...</p>
         </div>
-    </form>
+    {/if}
 </div>
 
 <style>
