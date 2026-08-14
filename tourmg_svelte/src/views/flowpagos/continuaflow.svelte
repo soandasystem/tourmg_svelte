@@ -4,14 +4,14 @@
     import { navigate } from "svelte-routing";
     import { secureStorage } from "../../lib/secureStore";
     import api from "../../lib/apis.js";
-    import { formatCurrency,formatDate,uniqid} from "../../lib/utils";
-    
+    import { formatCurrency, formatDate, uniqid } from "../../lib/utils";
+
     let hoy = new Date();
     let fecha = hoy.toISOString().split("T")[0];
     let valorcuota = 0;
     let nrocuotas = 0;
     let fechainicial = "";
-    let identificador= uniqid()
+    let identificador = uniqid();
 
     let isLoading = false;
     let errorMessage = "";
@@ -23,46 +23,55 @@
     const saleId = userData.sale || 0;
     const passengersId = userData.id || 0;
     const userrut = userData.userrut || "";
-    const mpagar =userData.mpagar || 0
+    const mpagar = userData.mpagar || 0;
 
     async function handleSubmit(event) {
         event.preventDefault();
         isLoading = true;
         errorMessage = "";
-        const urlReturn = window.location.origin 
+        const urlReturn = window.location.origin;
         try {
+            const payload = {
+                mpagar: mpagar,
+                valorcuota: valorcuota,
+                nrocuotas: nrocuotas,
+                fechainicial: fechainicial,
+                identificador: identificador,
+                company_id: currentCompanyId,
+                sale_id: saleId,
+                curso_id: Number(passengersId),
+                user_rut: userrut,
+                urlreturn: urlReturn + "/flowpagos/returnFlow",
+                urlconfirmation:
+                    "https://tourmg-go.onrender.com/api/v3.5/token",
+            };
             const result = await api.setData(
                 "iniciopagoflow",
-                JSON.stringify({
-                    mpagar: mpagar,
-                    valorcuota: valorcuota,
-                    nrocuotas: nrocuotas,
-                    fechainicial: fechainicial,
-                    identificador: identificador,
-                    company_id: currentCompanyId,
-                    sale_id: saleId,
-                    curso_id: Number(passengersId),
-                    user_rut: userrut,
-                    urlreturn: urlReturn + "/api/returnFlow",
-                    urlconfirmation:"https://tourmg-go.onrender.com/api/v3.5/token"
-                }),
+                JSON.stringify(payload),
                 "",
                 "",
                 schemaName,
             );
-
+            console.log("identificador:", identificador);
+            console.log("payload:", payload);
+            console.log("JSON:", JSON.stringify(payload));
             if (result.status !== "success") {
                 throw new Error(
                     result.message || "Error al iniciar el pago con Flow",
                 );
             }
-
+            //obtengo el token para guardalo  en secure y usarlo despues
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get("token");
+            const ud = secureStorage.getItem("_us_") || {};
+            ud.flowt = token;
+            secureStorage.setItem("_us_", ud);
             // Asumimos que el backend devuelve la URL de redirección
             // Ejemplo: { "url": "https://www.flow.cl/api/payment/create?token=..." }
-          
+
             const data = result.data;
             if (data && data.redirect_url) {
-                window.location.href = data.redirect_url; 
+                window.location.href = data.redirect_url;
             } else {
                 errorMessage =
                     "No se recibió la URL de redirección desde el servidor";
@@ -91,11 +100,7 @@
                     Continuar con Pago Flow
                 </h3>
             </div>
-            <button
-                type="button"
-                class="btn-back"
-                 on:click={handleBack}
-            >
+            <button type="button" class="btn-back" on:click={handleBack}>
                 <i class="fa fa-chevron-left me-1"></i> Volver
             </button>
         </div>
@@ -147,26 +152,10 @@
                 id="form_continuapagoflw"
                 on:submit|preventDefault={handleSubmit}
             >
-                <input
-                    type="hidden"
-                    name="mpagar"
-                    value={mpagar}
-                />
-                <input
-                    type="hidden"
-                    name="valorcuota"
-                    value={valorcuota}
-                />
-                <input
-                    type="hidden"
-                    name="nrocuotas"
-                    value={nrocuotas}
-                />
-                <input
-                    type="hidden"
-                    name="fechainicial"
-                    value={fechainicial}
-                />
+                <input type="hidden" name="mpagar" value={mpagar} />
+                <input type="hidden" name="valorcuota" value={valorcuota} />
+                <input type="hidden" name="nrocuotas" value={nrocuotas} />
+                <input type="hidden" name="fechainicial" value={fechainicial} />
 
                 <button
                     type="submit"
@@ -310,4 +299,3 @@
         }
     }
 </style>
-

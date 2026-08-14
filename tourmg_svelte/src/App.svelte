@@ -29,6 +29,7 @@
     import PaymentContratTravel from "./views/payment/contrattravel.svelte";
     import PaymentSales from "./views/payment/paymentsales.svelte";
     import Continuaflow from "./views/flowpagos/continuaflow.svelte";
+    import Returnflow from "./views/flowpagos/returnflow.svelte";
     // Importamos CSS global
     import "./app.css";
 
@@ -168,5 +169,9 @@
 
     <Route path="/flowpagos/continuaflow">
         <Continuaflow />
+    </Route>
+
+    <Route path="/flowpagos/returnFlow">
+        <Returnflow />
     </Route>
 </Router>
