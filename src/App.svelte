@@ -19,6 +19,7 @@
     import Course from "./views/admin/course.svelte";
     import Voucher from "./views/admin/voucher.svelte";
     import Entry from "./views/admin/entry.svelte";
+    import Listpay from "./views/admin/listpay.svelte";
     import Opening from "./views/opening/index.svelte";
     import OpeningPassengers from "./views/opening/passengers.svelte";
     import OpeningContratTravel from "./views/opening/contrattravel.svelte";
@@ -128,6 +129,12 @@
     <Route path="/admin/entry">
         <MainLayout>
             <Entry />
+        </MainLayout>
+    </Route>
+
+    <Route path="/admin/listpay">
+        <MainLayout>
+            <Listpay />
         </MainLayout>
     </Route>
 

@@ -133,7 +133,9 @@
                     class="detail-row py-3 border-bottom d-flex justify-content-between align-items-center"
                 >
                     <span class="text-muted fw-medium">Fecha Pago</span>
-                    <span class="price-value fw-bold text-dark">{fecha}</span>
+                    <span class="price-value fw-bold text-dark"
+                        >{formatDate(fecha)}</span
+                    >
                 </div>
 
                 <div

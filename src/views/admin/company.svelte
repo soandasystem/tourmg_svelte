@@ -23,8 +23,6 @@
     const userData = secureStorage.getItem("_us_");
     const company_id = userData.company;
 
-
-
     // El PHP determiana el code_company de cookies o session
     // Aquí podemos intentar obtenerlo de localStorage o usar el default o el prop idcl
     $: code_company = idcl || "GRL_999";
@@ -48,6 +46,8 @@
         nombrecontacto2: "",
         emailcontacto2: "",
         fonocontacto2: "",
+        subdominio: "",
+        identificador: "",
     });
 
     let companyForm = getInitialForm();
@@ -358,8 +358,16 @@
 
     async function saveForm() {
         // Clonamos para no afectar el bind del formulario directamente si algo falla
+        let identificador = "";
+        if (!isEditing) {
+            const prefijo = rsocial.substring(0, 3).toUpperCase() + "_";
+            identificador = uniqid(prefijo);
+        }
+
         const payload = {
             ...companyForm,
+            subdominio: urlconnecxion || "",
+            identificador: identificador,
             region_id: Number(companyForm.region_id || 0),
             comuna_id: Number(companyForm.comuna_id || 0),
             active: Number(companyForm.active),
@@ -742,16 +750,25 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group-custom">
-                                    <label for="urlconnecxion"
-                                        >Url Conneccion</label
-                                    >
-                                    <input
-                                        type="text"
-                                        id="urlconnecxion"
-                                        class="form-control-custom bg-light"
-                                        readonly
-                                        value={`https://www.tourmanager.cl/${companyForm.identificador || ""}`}
-                                    />
+                                    <label for="urlconnecxion">
+                                        Dirección de acceso de la empresa
+                                    </label>
+
+                                    <div class="d-flex w-100">
+                                        <span class="url-prefix">https://</span>
+
+                                        <input
+                                            type="text"
+                                            id="urlconnecxion"
+                                            class="form-control-custom bg-light url-input"
+                                            placeholder="miempresa"
+                                            bind:value={companyForm.subdominio}
+                                            maxlength="15"
+                                        />
+                                        <span class="url-suffix"
+                                            >.tourmanager.cl</span
+                                        >
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1329,5 +1346,31 @@
     }
     :global(.is-invalid) {
         border-color: #e74a3b !important;
+    }
+
+    .url-prefix,
+    .url-suffix {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        padding: 0 12px;
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+    }
+
+    .url-prefix {
+        border-radius: 6px 0 0 6px;
+        border-right: 0;
+    }
+
+    .url-suffix {
+        border-radius: 0 6px 6px 0;
+        border-left: 0;
+    }
+
+    .url-input {
+        border-radius: 0 !important;
+        flex: 1;
+        min-width: 0;
     }
 </style>
