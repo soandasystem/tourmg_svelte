@@ -161,12 +161,12 @@
                 "/flowpagos/continuaflow",
             );
         }
-return url;
+        return url;
     }
 
-function payWithGateway(gw) {
+    function payWithGateway(gw) {
         // Guarda el monto a pagar en el storage seguro bajo la variable "mpagar"
-        if ((apagarInput ?? 0) != 0) {
+        if ((apagarInput ?? 0) != 0 && (apagarInput ?? 0) >= 500) {
             const ud = secureStorage.getItem("_us_") || {};
             ud.mpagar = apagarInput;
             secureStorage.setItem("_us_", ud);
@@ -177,10 +177,10 @@ function payWithGateway(gw) {
             } else {
                 navigate(url);
             }
-        }else{
+        } else {
             Swal.fire(
                 "Pago",
-                "El Monto a pagar debe ser superios a $500.",
+                "El Monto a pagar debe ser superios a $500 y menor o igual al saldo a pagar.",
                 "error",
             );
         }
@@ -723,7 +723,7 @@ function payWithGateway(gw) {
 
                         {#if gatewaysc.length > 0 && apagar > 0}
                             <div class="row g-3">
-{#each gatewaysc as gw}
+                                {#each gatewaysc as gw}
                                     <div class="col-sm-6">
                                         <button
                                             type="button"
@@ -734,9 +734,7 @@ function payWithGateway(gw) {
                                                 class="gateway-logo-wrapper mb-3 d-flex align-items-center justify-content-center"
                                             >
                                                 <img
-                                                    src={getGatewayImage(
-                                                        gw,
-                                                    )}
+                                                    src={getGatewayImage(gw)}
                                                     alt={gw.gateway_name ||
                                                         gw.name ||
                                                         gw.gateway_type}
