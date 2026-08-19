@@ -51,17 +51,25 @@
         if (!sale) return "";
         if (sale.establecimiento_nombre) return sale.establecimiento_nombre;
         if (sale.establecimiento?.nombre) return sale.establecimiento.nombre;
-        if (schoolsMap[sale.establecimiento_id]) return schoolsMap[sale.establecimiento_id];
+        if (schoolsMap[sale.establecimiento_id])
+            return schoolsMap[sale.establecimiento_id];
         return "";
     }
 
     // Datos filtrados y consolidados
-    $: processedData = buildProcessedList(coursesList, rawPayments, sales, selectedVenta);
+    $: processedData = buildProcessedList(
+        coursesList,
+        rawPayments,
+        sales,
+        selectedVenta,
+    );
 
     function buildProcessedList(courses, payments, allSales, filterSaleId) {
         let filteredCourses = courses;
         if (filterSaleId) {
-            filteredCourses = courses.filter((c) => String(c.sale_id) === String(filterSaleId));
+            filteredCourses = courses.filter(
+                (c) => String(c.sale_id) === String(filterSaleId),
+            );
         }
 
         const paymentsByPassenger = {};
@@ -85,29 +93,40 @@
             const pList = paymentsByPassenger[c.id] || [];
 
             const validPayments = pList.filter(
-                (p) => p.transaction_type !== "reverse" && p.status !== "ANULADO"
+                (p) =>
+                    p.transaction_type !== "reverse" && p.status !== "ANULADO",
             );
 
             const pagado = validPayments.reduce(
                 (sum, p) => sum + parseFloat(p.amount || 0),
-                0
+                0,
             );
 
-            const apagar = parseFloat(c.apagar ?? (c.vpagar ? c.vpagar - (c.descto || 0) : 0));
+            const apagar = parseFloat(
+                c.apagar ?? (c.vpagar ? c.vpagar - (c.descto || 0) : 0),
+            );
             const saldo = apagar - pagado;
 
             let lastPayment = null;
             if (validPayments.length > 0) {
                 const sorted = [...validPayments].sort((a, b) => {
-                    const dateA = new Date(a.payment_date || a.created_at || 0).getTime();
-                    const dateB = new Date(b.payment_date || b.created_at || 0).getTime();
-                    return dateB - dateA || (b.id - a.id);
+                    const dateA = new Date(
+                        a.payment_date || a.created_at || 0,
+                    ).getTime();
+                    const dateB = new Date(
+                        b.payment_date || b.created_at || 0,
+                    ).getTime();
+                    return dateB - dateA || b.id - a.id;
                 });
                 lastPayment = sorted[0];
             }
 
             const schoolName = getSchoolName(sale) || c.colegio || "";
-            const cursoNombre = (sale.curso ? `${sale.curso} - ${sale.idcurso || ""}` : c.curso || "").trim();
+            const cursoNombre = (
+                sale.curso
+                    ? `${sale.curso} - ${sale.idcurso || ""}`
+                    : c.curso || ""
+            ).trim();
 
             return {
                 id: c.id,
@@ -122,9 +141,16 @@
                 apagar: apagar,
                 pagado: pagado,
                 saldo: saldo,
-                last_payment_num: lastPayment ? (lastPayment.voucher || lastPayment.id || "") : "",
-                last_payment_date: lastPayment && lastPayment.payment_date ? lastPayment.payment_date : "",
-                last_payment_amount: lastPayment ? parseFloat(lastPayment.amount || 0) : 0,
+                last_payment_num: lastPayment
+                    ? lastPayment.voucher || lastPayment.id || ""
+                    : "",
+                last_payment_date:
+                    lastPayment && lastPayment.payment_date
+                        ? lastPayment.payment_date
+                        : "",
+                last_payment_amount: lastPayment
+                    ? parseFloat(lastPayment.amount || 0)
+                    : 0,
                 all_payments: pList,
             };
         });
@@ -142,11 +168,17 @@
 
         const formattedApagar = formatCurrency(row.apagar);
         const formattedPagado = `<span class="badge bg-success-soft text-success">${formatCurrency(row.pagado)}</span>`;
-        const formattedSaldo = row.saldo > 0
-            ? `<span class="badge bg-danger-soft text-danger">${formatCurrency(row.saldo)}</span>`
-            : `<span class="badge bg-success-soft text-success">${formatCurrency(0)}</span>`;
-        const formattedUltMonto = row.last_payment_amount > 0 ? formatCurrency(row.last_payment_amount) : "-";
-        const formattedUltFecha = row.last_payment_date ? dayjs(row.last_payment_date).format("DD/MM/YYYY") : "-";
+        const formattedSaldo =
+            row.saldo > 0
+                ? `<span class="badge bg-danger-soft text-danger">${formatCurrency(row.saldo)}</span>`
+                : `<span class="badge bg-success-soft text-success">${formatCurrency(0)}</span>`;
+        const formattedUltMonto =
+            row.last_payment_amount > 0
+                ? formatCurrency(row.last_payment_amount)
+                : "-";
+        const formattedUltFecha = row.last_payment_date
+            ? dayjs(row.last_payment_date).format("DD/MM/YYYY")
+            : "-";
 
         return [
             btnIngresos,
@@ -163,6 +195,7 @@
             formattedUltMonto,
             String(row.sale_id || "-"),
             formatRut(row.rut_alumno) || "-",
+            row.passenger_id,
         ];
     });
 
@@ -181,6 +214,7 @@
                 info: "Mostrando {start} a {end} de {rows} registros",
                 noResults: "No se encontraron registros",
             },
+            columns: [{ select: [12, 13, 14], hidden: true }],
             data: {
                 headings: [
                     "Ingresos",
@@ -197,6 +231,7 @@
                     "Monto Utl. pago",
                     "Nro Vta",
                     "rut al",
+                    "pasajero",
                 ],
                 data: dataConfig,
             },
@@ -225,14 +260,14 @@
                     "",
                     "company_id=" + CompanyId,
                     "",
-                    schemaName
+                    schemaName,
                 ),
                 api.getData(
                     "school",
                     "",
                     "company_id=" + CompanyId,
                     "",
-                    schemaName
+                    schemaName,
                 ),
             ]);
 
@@ -256,31 +291,39 @@
                     "",
                     "company_id=" + CompanyId,
                     "",
-                    schemaName
+                    schemaName,
                 ),
                 api.getData(
                     "payment",
                     "",
                     "company_id=" + CompanyId,
                     "",
-                    schemaName
+                    schemaName,
                 ),
             ]);
 
             if (coursesRes.status === "success") {
-                coursesList = Array.isArray(coursesRes.data) ? coursesRes.data : [];
+                coursesList = Array.isArray(coursesRes.data)
+                    ? coursesRes.data
+                    : [];
             } else {
                 coursesList = [];
             }
 
             if (paymentsRes.status === "success") {
-                rawPayments = Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
+                rawPayments = Array.isArray(paymentsRes.data)
+                    ? paymentsRes.data
+                    : [];
             } else {
                 rawPayments = [];
             }
         } catch (e) {
             console.error("Error cargando lista de pagos:", e);
-            Swal.fire("Error", "Ocurrió un error al cargar la información de pagos.", "error");
+            Swal.fire(
+                "Error",
+                "Ocurrió un error al cargar la información de pagos.",
+                "error",
+            );
         } finally {
             loading = false;
         }
@@ -292,7 +335,12 @@
         const passengerId = detail.passenger_id || detail.id;
         const saleId = detail.sale_id;
 
-        const pass = processedData.find((p) => p.id === passengerId);
+        const pass = processedData.find(
+            (p) =>
+                String(p.passenger_id) === String(passengerId) ||
+                String(p.id) === String(passengerId),
+        );
+
         if (!pass) return;
 
         selectedPassengerDetail = pass;
@@ -301,7 +349,10 @@
         passengerPayments = [];
 
         try {
-            let queryParts = [`passenger_id=${passengerId}`, `company_id=${CompanyId}`];
+            let queryParts = [
+                `passenger_id=${passengerId}`,
+                `company_id=${CompanyId}`,
+            ];
             if (saleId || pass.sale_id) {
                 queryParts.push(`sale_id=${saleId || pass.sale_id}`);
             }
@@ -311,9 +362,9 @@
                 "",
                 queryParts.join("&"),
                 "",
-                schemaName
+                schemaName,
             );
-
+            console.log("res", res);
             let allRows = [];
             if (res.status === "success" && Array.isArray(res.data)) {
                 allRows = res.data;
@@ -323,14 +374,28 @@
 
             // Filtrar únicamente los registros que tengan State / Status "Pagado"
             passengerPayments = allRows.filter((p) => {
-                const stateVal = (p.state || p.status || "").toString().trim().toLowerCase();
-                return stateVal === "pagado" || p.state === "Pagado" || p.status === "Pagado";
+                const stateVal = (p.state || p.status || "")
+                    .toString()
+                    .trim()
+                    .toLowerCase();
+                return (
+                    stateVal === "pagado" ||
+                    p.state === "Pagado" ||
+                    p.status === "Pagado"
+                );
             });
         } catch (e) {
             console.error("Error al obtener detalle de pagos del pasajero:", e);
             passengerPayments = (pass.all_payments || []).filter((p) => {
-                const stateVal = (p.state || p.status || "").toString().trim().toLowerCase();
-                return stateVal === "pagado" || p.state === "Pagado" || p.status === "Pagado";
+                const stateVal = (p.state || p.status || "")
+                    .toString()
+                    .trim()
+                    .toLowerCase();
+                return (
+                    stateVal === "pagado" ||
+                    p.state === "Pagado" ||
+                    p.status === "Pagado"
+                );
             });
         } finally {
             loadingModal = false;
@@ -381,14 +446,18 @@
             `"${row.rut_alumno || ""}"`,
         ]);
 
-        const csvContent = "\uFEFF" + [headers.join(";"), ...rows.map((e) => e.join(";"))].join("\r\n");
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const csvContent =
+            "\uFEFF" +
+            [headers.join(";"), ...rows.map((e) => e.join(";"))].join("\r\n");
+        const blob = new Blob([csvContent], {
+            type: "text/csv;charset=utf-8;",
+        });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
         link.setAttribute(
             "download",
-            `informe_pagos_${selectedVenta ? 'venta_' + selectedVenta + '_' : ''}${dayjs().format("YYYYMMDD_HHmmss")}.csv`
+            `informe_pagos_${selectedVenta ? "venta_" + selectedVenta + "_" : ""}${dayjs().format("YYYYMMDD_HHmmss")}.csv`,
         );
         document.body.appendChild(link);
         link.click();
@@ -417,7 +486,8 @@
                     <h2 class="m-0">{title}</h2>
                 </div>
                 <p class="subtitle mt-1 mb-0">
-                    Administra y visualiza el informe consolidado de pagos de pasajeros.
+                    Administra y visualiza el informe consolidado de pagos de
+                    pasajeros.
                 </p>
             </div>
             {#if canExport}
@@ -437,7 +507,7 @@
         <!-- Filtros inline -->
         <div class="card-body p-4 pt-0">
             <div class="section-title mb-3">Filtro de Ventas</div>
-            <div class="row g-2 align-items-end mb-3">
+            <div class="row g-2 align-items-end mb-4">
                 <div class="col-md-5 col-sm-6 col-xs-12">
                     <div class="form-group-custom">
                         <label for="ventas">Ventas</label>
@@ -457,6 +527,7 @@
                     </div>
                 </div>
             </div>
+            <hr class="my-3" style="border-top: 1px solid #e3e6f0; opacity: 0.8;" />
         </div>
 
         <!-- Grilla Datatable idéntica al resto del proyecto -->
@@ -482,10 +553,15 @@
         tabindex="-1"
         role="dialog"
     >
-        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div
+            class="modal-dialog modal-lg modal-dialog-centered"
+            role="document"
+        >
             <div class="modal-content border-0 shadow">
                 <div class="modal-header bg-primary text-white border-0">
-                    <h5 class="modal-title m-0 fw-bold d-flex align-items-center gap-2">
+                    <h5
+                        class="modal-title m-0 fw-bold d-flex align-items-center gap-2"
+                    >
                         <i class="fa fa-list-alt"></i> Detalle de Pagos
                     </h5>
                     <button
@@ -503,38 +579,77 @@
                         <div class="passenger-summary-box mb-4 p-3 rounded">
                             <div class="row g-2">
                                 <div class="col-md-6">
-                                    <p class="mb-1"><strong>Alumno:</strong> {selectedPassengerDetail.nombre_alumno} ({formatRut(selectedPassengerDetail.rut_alumno)})</p>
-                                    <p class="mb-1"><strong>Apoderado:</strong> {selectedPassengerDetail.nombre_apoderado} ({formatRut(selectedPassengerDetail.rut_apoderado)})</p>
-                                    <p class="mb-0"><strong>Colegio / Curso:</strong> {selectedPassengerDetail.colegio} - {selectedPassengerDetail.curso}</p>
+                                    <p class="mb-1">
+                                        <strong>Alumno:</strong>
+                                        {selectedPassengerDetail.nombre_alumno}
+                                    </p>
+                                    <p class="mb-1">
+                                        <strong>Apoderado:</strong>
+                                        {selectedPassengerDetail.nombre_apoderado}
+                                    </p>
+                                    <p class="mb-0">
+                                        <strong>Colegio:</strong>
+                                        {selectedPassengerDetail.colegio}
+                                    </p>
+                                    <p class="mb-0">
+                                        <strong>Curso:</strong>
+                                        {selectedPassengerDetail.curso}
+                                    </p>
                                 </div>
                                 <div class="col-md-6 text-md-end">
-                                    <p class="mb-1"><strong>Total a Pagar:</strong> {formatCurrency(selectedPassengerDetail.apagar)}</p>
-                                    <p class="mb-1 text-success"><strong>Total Pagado:</strong> {formatCurrency(selectedPassengerDetail.pagado)}</p>
-                                    <p class="mb-0 text-danger"><strong>Saldo Pendiente:</strong> {formatCurrency(selectedPassengerDetail.saldo)}</p>
+                                    <p class="mb-1">
+                                        <strong>Total a Pagar:</strong>
+                                        {formatCurrency(
+                                            selectedPassengerDetail.apagar,
+                                        )}
+                                    </p>
+                                    <p class="mb-1 text-success">
+                                        <strong>Total Pagado:</strong>
+                                        {formatCurrency(
+                                            selectedPassengerDetail.pagado,
+                                        )}
+                                    </p>
+                                    <p class="mb-0 text-danger">
+                                        <strong>Saldo Pendiente:</strong>
+                                        {formatCurrency(
+                                            selectedPassengerDetail.saldo,
+                                        )}
+                                    </p>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="section-title mb-3">Ingresos Pagados (Estado: Pagado)</div>
+                        <div class="section-title mb-3">Ingresos</div>
 
                         {#if loadingModal}
                             <div class="text-center py-4">
-                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                                <p class="text-muted mt-2 small">Cargando pagos...</p>
+                                <div
+                                    class="spinner-border spinner-border-sm text-primary"
+                                    role="status"
+                                ></div>
+                                <p class="text-muted mt-2 small">
+                                    Cargando pagos...
+                                </p>
                             </div>
                         {:else if passengerPayments.length === 0}
-                            <div class="alert alert-info text-center py-3 mb-0" role="alert">
-                                No se registran ingresos con estado <strong>Pagado</strong> para este pasajero.
+                            <div
+                                class="alert alert-info text-center py-3 mb-0"
+                                role="alert"
+                            >
+                                No se registran ingresos con estado <strong
+                                    >Pagado</strong
+                                > para este pasajero.
                             </div>
                         {:else}
                             <div class="table-responsive">
-                                <table class="table table-sm table-hover align-middle mb-0">
+                                <table
+                                    class="table table-sm table-hover align-middle mb-0"
+                                >
                                     <thead class="table-light">
                                         <tr>
                                             <th>#</th>
                                             <th>Fecha</th>
                                             <th>Nro Comp</th>
-                                            <th>Voucher</th>
                                             <th>Forma de Pago</th>
                                             <th>Monto</th>
                                             <th>Estado</th>
@@ -545,35 +660,69 @@
                                         {#each passengerPayments as pay, idx}
                                             <tr>
                                                 <td>{idx + 1}</td>
-                                                <td>{pay.payment_date ? dayjs(pay.payment_date).format("DD/MM/YYYY") : (pay.created_at ? dayjs(pay.created_at).format("DD/MM/YYYY") : "-")}</td>
+                                                <td
+                                                    >{pay.payment_date
+                                                        ? dayjs(
+                                                              pay.payment_date,
+                                                          ).format("DD/MM/YYYY")
+                                                        : pay.created_at
+                                                          ? dayjs(
+                                                                pay.created_at,
+                                                            ).format(
+                                                                "DD/MM/YYYY",
+                                                            )
+                                                          : "-"}</td
+                                                >
                                                 <td>
-                                                    <span class="badge bg-light text-dark border">
-                                                        #{pay.id}
-                                                    </span>
+                                                    #{pay.identifier}
                                                 </td>
-                                                <td>{pay.voucher || "-"}</td>
-                                                <td>{pay.payment_method || pay.forma_pago || "Efectivo / Transferencia"}</td>
-                                                <td class="fw-bold text-success">
+                                                <td
+                                                    >{pay.payment_method ||
+                                                        pay.forma_pago ||
+                                                        "Efectivo / Transferencia"}</td
+                                                >
+                                                <td
+                                                    class="fw-bold text-success"
+                                                >
                                                     {formatCurrency(pay.amount)}
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-success-soft text-success">
-                                                        <i class="fa fa-check me-1"></i> {pay.state || pay.status || 'Pagado'}
+                                                    <span
+                                                        class="badge bg-success-soft text-success"
+                                                    >
+                                                        <i
+                                                            class="fa fa-check me-1"
+                                                        ></i>
+                                                        {pay.state ||
+                                                            pay.status ||
+                                                            "Pagado"}
                                                     </span>
                                                 </td>
-                                                <td class="text-muted small">{pay.notes || pay.description || "-"}</td>
+                                                <td class="text-muted small"
+                                                    >{pay.notes ||
+                                                        pay.description ||
+                                                        "-"}</td
+                                                >
                                             </tr>
                                         {/each}
                                     </tbody>
                                     <tfoot class="table-light">
                                         <tr>
-                                            <td colspan="5" class="text-end fw-bold">Total Ingresos:</td>
+                                            <td
+                                                colspan="5"
+                                                class="text-end fw-bold"
+                                                >Total Ingresos:</td
+                                            >
                                             <td class="fw-bold text-success">
                                                 {formatCurrency(
                                                     passengerPayments.reduce(
-                                                        (sum, p) => sum + parseFloat(p.amount || 0),
-                                                        0
-                                                    )
+                                                        (sum, p) =>
+                                                            sum +
+                                                            parseFloat(
+                                                                p.amount || 0,
+                                                            ),
+                                                        0,
+                                                    ),
                                                 )}
                                             </td>
                                             <td colspan="2"></td>
@@ -585,7 +734,9 @@
                     {/if}
                 </div>
 
-                <div class="modal-footer border-0 justify-content-end p-3 bg-light">
+                <div
+                    class="modal-footer border-0 justify-content-end p-3 bg-light"
+                >
                     <button
                         type="button"
                         class="btn-cancel-modal"

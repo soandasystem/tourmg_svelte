@@ -45,6 +45,55 @@
     $: isSingle = mode === "single";
     $: apagar = isSingle ? totalAPagar : selectedInstallmentAmount;
 
+    // Modal Detalle de Pagos
+    let showDetailModal = false;
+    let loadingModal = false;
+    let passengerPayments = [];
+
+    async function handleViewDetail() {
+        showDetailModal = true;
+        loadingModal = true;
+        passengerPayments = [];
+
+        try {
+            const res = await api.getData(
+                "payment",
+                "",
+                `passenger_id=${passengerCursoId}&company_id=${companyId}&sale_id=${saleId}`,
+                "",
+                schema,
+            );
+
+            let allRows = [];
+            if (res.status === "success" && Array.isArray(res.data)) {
+                allRows = res.data;
+            }
+
+            // Filtrar únicamente los registros que tengan State / Status "Pagado"
+            passengerPayments = allRows.filter((p) => {
+                const stateVal = (p.state || p.status || "")
+                    .toString()
+                    .trim()
+                    .toLowerCase();
+                return (
+                    stateVal === "pagado" ||
+                    p.state === "Pagado" ||
+                    p.status === "Pagado"
+                );
+            });
+        } catch (e) {
+            console.error("Error al obtener detalle de pagos del pasajero:", e);
+            passengerPayments = [];
+        } finally {
+            loadingModal = false;
+        }
+    }
+
+    function closeDetailModal() {
+        showDetailModal = false;
+        passengerPayments = [];
+    }
+
     // ─────────────────────────────────────────────────────
     //  CARGA DE DATOS
     // ─────────────────────────────────────────────────────
@@ -514,9 +563,19 @@
                                 <div
                                     class="detail-row py-3 border-bottom d-flex justify-content-between align-items-center"
                                 >
-                                    <span class="text-muted fw-medium"
-                                        >Total Abonado</span
-                                    >
+                                    <span class="text-muted fw-medium d-flex align-items-center gap-2"
+                                        >Total Abonado
+                                        {#if totalPagado > 0}
+                                            <button
+                                                type="button"
+                                                class="btn-mini-info"
+                                                on:click={handleViewDetail}
+                                                title="Ver detalle de pagos"
+                                            >
+                                                <i class="fa fa-eye"></i>
+                                            </button>
+                                        {/if}
+                                    </span>
                                     <span
                                         class="price-value fw-bold text-success"
                                         >{formatCurrency(totalPagado)}</span
@@ -541,6 +600,15 @@
                                     </div>
                                 {/if}
                             </div>
+
+                            <!-- Botón Ver Pagos debajo del Resumen de Saldo -->
+                            <button
+                                type="button"
+                                class="btn-detail-pay w-100 py-2 mb-4 justify-content-center"
+                                on:click={handleViewDetail}
+                            >
+                                <i class="fa fa-list-alt me-2"></i> Ver Pagos Realizados
+                            </button>
                         {:else}
                             <!-- MODO MULTI-CUOTA: listar cuotas pendientes -->
                             <div class="payment-detail-card p-4 rounded-4 mb-4">
@@ -641,6 +709,15 @@
                                     {/if}
                                 {/if}
                             </div>
+
+                            <!-- Botón Ver Pagos en modo multi-cuota -->
+                            <button
+                                type="button"
+                                class="btn-detail-pay w-100 py-2 mb-4 justify-content-center"
+                                on:click={handleViewDetail}
+                            >
+                                <i class="fa fa-list-alt me-2"></i> Ver Pagos Realizados
+                            </button>
                         {/if}
 
                         <!-- Input monto a pagar -->
@@ -803,6 +880,165 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Detalle de Pagos -->
+{#if showDetailModal}
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="modal-backdrop fade show" on:click={closeDetailModal}></div>
+    <div
+        class="modal fade show d-block"
+        id="modal-payment-detail"
+        tabindex="-1"
+        role="dialog"
+    >
+        <div
+            class="modal-dialog modal-lg modal-dialog-centered"
+            role="document"
+        >
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white border-0">
+                    <h5
+                        class="modal-title m-0 fw-bold d-flex align-items-center gap-2"
+                    >
+                        <i class="fa fa-list-alt"></i> Detalle de Pagos
+                    </h5>
+                    <button
+                        type="button"
+                        class="btn-close-custom"
+                        on:click={closeDetailModal}
+                        aria-label="Close"
+                    >
+                        &times;
+                    </button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <div class="section-title mb-3">Ingresos</div>
+
+                    {#if loadingModal}
+                        <div class="text-center py-4">
+                            <div
+                                class="spinner-border spinner-border-sm text-primary"
+                                role="status"
+                            ></div>
+                            <p class="text-muted mt-2 small">
+                                Cargando pagos...
+                            </p>
+                        </div>
+                    {:else if passengerPayments.length === 0}
+                        <div
+                            class="alert alert-info text-center py-3 mb-0"
+                            role="alert"
+                        >
+                            No se registran ingresos con estado <strong
+                                >Pagado</strong
+                            >.
+                        </div>
+                    {:else}
+                        <div class="table-responsive">
+                            <table
+                                class="table table-sm table-hover align-middle mb-0"
+                            >
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Fecha</th>
+                                        <th>Nro Comp</th>
+                                        <th>Forma de Pago</th>
+                                        <th>Monto</th>
+                                        <th>Estado</th>
+                                        <th>Observación</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {#each passengerPayments as pay, idx}
+                                        <tr>
+                                            <td>{idx + 1}</td>
+                                            <td
+                                                >{pay.payment_date
+                                                    ? dayjs(
+                                                          pay.payment_date,
+                                                      ).format("DD/MM/YYYY")
+                                                    : pay.created_at
+                                                      ? dayjs(
+                                                            pay.created_at,
+                                                        ).format("DD/MM/YYYY")
+                                                      : "-"}</td
+                                            >
+                                            <td>
+                                                #{pay.identifier || pay.id || "-"}
+                                            </td>
+                                            <td
+                                                >{pay.payment_method ||
+                                                    pay.forma_pago ||
+                                                    "Efectivo / Transferencia"}</td
+                                            >
+                                            <td class="fw-bold text-success">
+                                                {formatCurrency(pay.amount)}
+                                            </td>
+                                            <td>
+                                                <span
+                                                    class="badge bg-success-soft text-success"
+                                                >
+                                                    <i
+                                                        class="fa fa-check me-1"
+                                                    ></i>
+                                                    {pay.state ||
+                                                        pay.status ||
+                                                        "Pagado"}
+                                                </span>
+                                            </td>
+                                            <td class="text-muted small"
+                                                >{pay.notes ||
+                                                    pay.description ||
+                                                    "-"}</td
+                                            >
+                                        </tr>
+                                    {/each}
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <td
+                                            colspan="4"
+                                            class="text-end fw-bold"
+                                            >Total Ingresos:</td
+                                        >
+                                        <td class="fw-bold text-success">
+                                            {formatCurrency(
+                                                passengerPayments.reduce(
+                                                    (sum, p) =>
+                                                        sum +
+                                                        parseFloat(
+                                                            p.amount || 0,
+                                                        ),
+                                                    0,
+                                                ),
+                                            )}
+                                        </td>
+                                        <td colspan="2"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    {/if}
+                </div>
+
+                <div
+                    class="modal-footer border-0 justify-content-end p-3 bg-light"
+                >
+                    <button
+                        type="button"
+                        class="btn-cancel-modal"
+                        on:click={closeDetailModal}
+                    >
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+{/if}
 
 <style>
     .page-wrapper {
@@ -1144,5 +1380,123 @@
         .price-total {
             font-size: 1.2rem;
         }
+    }
+
+    /* Modal Styles */
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1040;
+    }
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1050;
+        overflow-x: hidden;
+        overflow-y: auto;
+        outline: 0;
+    }
+    .modal-dialog {
+        margin: 1.75rem auto;
+    }
+    .modal-content {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .btn-close-custom {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        line-height: 1;
+        opacity: 0.8;
+        cursor: pointer;
+        padding: 0;
+    }
+    .btn-close-custom:hover {
+        opacity: 1;
+    }
+    .btn-cancel-modal {
+        background: #6c757d;
+        color: white;
+        border: 1px solid #6c757d;
+        padding: 8px 20px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .btn-cancel-modal:hover {
+        background: #5a6268;
+    }
+    .section-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #4e73df;
+        letter-spacing: 0.5px;
+        border-left: 3px solid #4e73df;
+        padding-left: 10px;
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px !important;
+    }
+    :global(.badge) {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 11px;
+        display: inline-flex;
+        align-items: center;
+    }
+    :global(.bg-success-soft) {
+        background-color: rgba(28, 200, 138, 0.15) !important;
+        color: #1cc88a !important;
+    }
+    .btn-detail-pay {
+        background-color: #4e73df;
+        color: white;
+        border: 1px solid #4e73df;
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        transition: all 0.2s ease-in-out;
+    }
+    .btn-detail-pay:hover {
+        background-color: #2e59d9;
+        color: white;
+        transform: translateY(-1px);
+    }
+    .btn-mini-info {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #d1d3e2;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: #36b9cc;
+        font-size: 12px;
+        padding: 0;
+    }
+    .btn-mini-info:hover {
+        background: #36b9cc;
+        color: white;
+        border-color: #36b9cc;
     }
 </style>
