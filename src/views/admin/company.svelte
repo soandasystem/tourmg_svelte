@@ -18,7 +18,14 @@
     let viewMode = "list";
     let isEditing = false;
     let showDeleteModal = false;
+    let showDocxModal = false;
+    let docxModalType = "gira";
     let activeTab = "general";
+
+    function openDocxModal(type) {
+        docxModalType = type;
+        showDocxModal = true;
+    }
 
     const userData = secureStorage.getItem("_us_");
     const company_id = userData.company;
@@ -895,12 +902,15 @@
                             </div>
                             <p class="text-muted mb-4 small">
                                 Sube el documento de términos y condiciones para
-                                giras. <br />Formatos aceptados: PDF, DOCX.
+                                giras. <br />Formatos aceptados: DOCX.
                             </p>
-                            <div class="mt-4">
+                            <div
+                                class="mt-4 d-flex justify-content-center gap-2 flex-wrap"
+                            >
                                 <label
                                     for="file_gira"
-                                    class="btn btn-outline-primary px-4 py-2"
+                                    class="btn btn-outline-primary px-4 py-2 mb-0"
+                                    style="cursor: pointer;"
                                 >
                                     <i class="fa fa-folder-open-o me-2"></i> Seleccionar
                                     Archivo
@@ -912,6 +922,14 @@
                                     on:change={(e) =>
                                         handleFileChange(e, "gira")}
                                 />
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-info px-4 py-2"
+                                    on:click={() => openDocxModal("gira")}
+                                >
+                                    <i class="fa fa-info-circle me-2"></i> Instrucciones
+                                    DOCX
+                                </button>
                             </div>
                             {#if contractGiraFile}
                                 <div class="mt-3 text-success fw-bold small">
@@ -932,12 +950,15 @@
                             </div>
                             <p class="text-muted mb-4 small">
                                 Sube el documento de términos y condiciones para
-                                ventas grupales.
+                                ventas grupales. <br />Formatos aceptados: DOCX.
                             </p>
-                            <div class="mt-4">
+                            <div
+                                class="mt-4 d-flex justify-content-center gap-2 flex-wrap"
+                            >
                                 <label
                                     for="file_grupal"
-                                    class="btn btn-outline-primary px-4 py-2"
+                                    class="btn btn-outline-primary px-4 py-2 mb-0"
+                                    style="cursor: pointer;"
                                 >
                                     <i class="fa fa-folder-open-o me-2"></i> Seleccionar
                                     Archivo
@@ -949,6 +970,14 @@
                                     on:change={(e) =>
                                         handleFileChange(e, "grupal")}
                                 />
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-info px-4 py-2"
+                                    on:click={() => openDocxModal("grupal")}
+                                >
+                                    <i class="fa fa-info-circle me-2"></i> Instrucciones
+                                    DOCX
+                                </button>
                             </div>
                             {#if contractGrupalFile}
                                 <div class="mt-3 text-success fw-bold small">
@@ -1058,6 +1087,347 @@
                         class="btn btn-danger px-4"
                         on:click={confirmDelete}>Sí, Eliminar</button
                     >
+                </div>
+            </div>
+        </div>
+    </div>
+{/if}
+
+{#if showDocxModal}
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa fa-file-word-o fa-lg"></i>
+                        <h5 class="modal-title mb-0">
+                            {docxModalType === "gira"
+                                ? "Instrucciones de Llenado - Contrato Giras de Estudios"
+                                : "Instrucciones de Llenado - Contrato Viajes Grupales"}
+                        </h5>
+                    </div>
+                    <button
+                        type="button"
+                        title="Cerrar"
+                        class="btn-close btn-close-white"
+                        on:click={() => (showDocxModal = false)}
+                    ></button>
+                </div>
+                <div class="modal-body p-4">
+                    {#if docxModalType === "gira"}
+                        <div
+                            class="alert alert-primary bg-light-primary border-0 mb-4 p-3 rounded-3"
+                        >
+                            <strong class="d-block mb-1 text-primary">
+                                <i class="fa fa-info-circle me-1"></i> Reglas agregar
+                                datos la Contrato Giras
+                            </strong>
+                            <div class="text-dark small">
+                                Para agregar la informacion esta debe ir dentro
+                                de <code>{`{}`}</code> ejemplo
+                                <code>{`{dato}`}</code><br />
+                                puede agregarlos todos o solo los que sean necesarios,
+                                a continuacion<br />
+                                se enumera la informacion que se puede agregar al
+                                contrato<br />
+                                para agrtegar la firma debe generar un BookMark (Marcador)en
+                                el word llamado
+                                <code>Firma</code><br />
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <div
+                                    class="p-3 bg-light rounded-3 h-100 border"
+                                >
+                                    <ul class="docx-var-list">
+                                        <li>
+                                            Dia,Mes y año de la venta <code
+                                                class="badge-code"
+                                                >{`{vtaDia}`}</code
+                                            >,
+                                            <code class="badge-code"
+                                                >{`\${vtaMes}`}</code
+                                            >,
+                                            <code class="badge-code"
+                                                >{`\${vtaAño}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Rut Empresa <code class="badge-code"
+                                                >{`{rute}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Razon Social <code
+                                                class="badge-code"
+                                                >{`{rsocial}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Nombre Fantasia <code
+                                                class="badge-code"
+                                                >{`{nfantasia}`}</code
+                                            >
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div
+                                    class="p-3 bg-light rounded-3 h-100 border"
+                                >
+                                    <ul class="docx-var-list">
+                                        <li>
+                                            Rut Representante legal <code
+                                                class="badge-code"
+                                                >{`{rlegal}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Nombre Representante legal <code
+                                                class="badge-code"
+                                                >{`{nlegal}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Direccion Empresa <code
+                                                class="badge-code"
+                                                >{`{edireccion}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Nombre Colegio <code
+                                                class="badge-code"
+                                                >{`{colegio}`}</code
+                                            >
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div
+                                    class="p-3 bg-light rounded-3 h-100 border"
+                                >
+                                    <ul class="docx-var-list">
+                                        <li>
+                                            Curso <code class="badge-code"
+                                                >{`{curso}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Nombre Programa <code
+                                                class="badge-code"
+                                                >{`{programa}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Valor programa <code
+                                                class="badge-code"
+                                                >{`{vprograma}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Valor programa origen <code
+                                                class="badge-code"
+                                                >{`{tprograma}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Tipo de Cambio <code
+                                                class="badge-code"
+                                                >{`{tc}`}</code
+                                            >
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div
+                                    class="p-3 bg-light rounded-3 h-100 border"
+                                >
+                                    <ul class="docx-var-list">
+                                        <li>
+                                            Valor Reserva <code
+                                                class="badge-code"
+                                                >{`{reserva}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Nro Pasajeros Liberados <code
+                                                class="badge-code"
+                                                >{`{liberados}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Fecha Salida <code
+                                                class="badge-code"
+                                                >{`{fsalida}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Ultima Fecha de Pago <code
+                                                class="badge-code"
+                                                >{`{fpago}`}</code
+                                            >
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    {:else if docxModalType === "grupal"}
+                        <div
+                            class="alert alert-primary bg-light-primary border-0 mb-4 p-3 rounded-3"
+                        >
+                            <strong class="d-block mb-1 text-primary">
+                                <i class="fa fa-info-circle me-1"></i> Reglas agregar
+                                datos la Contrato Viejes Grupales
+                            </strong>
+                            <div class="text-dark small">
+                                Para agregar la informacion esta debe ir dentro
+                                de <code>{`{}`}</code> ejemplo
+                                <code>{`{dato}`}</code><br />
+                                puede agregarlos todos o solo los que sean necesarios,
+                                a continuacion<br />
+                                se enumera la informacion que se puede agregar al
+                                contrato<br />
+                                para agrtegar la firma debe generar un BookMark (Marcador)
+                                en el word llamado
+                                <code>Firma</code><br />
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div
+                                    class="p-3 bg-light rounded-3 h-100 border"
+                                >
+                                    <ul class="docx-var-list">
+                                        <li>
+                                            Dia,Mes y año de la venta <code
+                                                class="badge-code"
+                                                >{`{vtaDia}`}</code
+                                            >,
+                                            <code class="badge-code"
+                                                >{`{vtaMes}`}</code
+                                            >,
+                                            <code class="badge-code"
+                                                >{`{vtaAño}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Rut Empresa <code class="badge-code"
+                                                >{`{rute}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Razon Social <code
+                                                class="badge-code"
+                                                >{`{rsocial}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Nombre Fantasia <code
+                                                class="badge-code"
+                                                >{`{nfantasia}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Rut Representante legal <code
+                                                class="badge-code"
+                                                >{`{rlegal}`}</code
+                                            >
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div
+                                    class="p-3 bg-light rounded-3 h-100 border"
+                                >
+                                    <ul class="docx-var-list">
+                                        <li>
+                                            Nombre Representante legal <code
+                                                class="badge-code"
+                                                >{`{nlegal}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Direccion Empresa <code
+                                                class="badge-code"
+                                                >{`{edireccion}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Nombre Programa <code
+                                                class="badge-code"
+                                                >{`{programa}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Valor programa <code
+                                                class="badge-code"
+                                                >{`{vprograma}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Valor programa moneda origen <code
+                                                class="badge-code"
+                                                >{`{tprograma}`}</code
+                                            >
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div
+                                    class="p-3 bg-light rounded-3 h-100 border"
+                                >
+                                    <ul class="docx-var-list">
+                                        <li>
+                                            Tipo de Cambio <code
+                                                class="badge-code"
+                                                >{`{tc}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Valor Reserva <code
+                                                class="badge-code"
+                                                >{`{reserva}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Nro Pasajeros Liberados <code
+                                                class="badge-code"
+                                                >{`{liberados}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Fecha Salida <code
+                                                class="badge-code"
+                                                >{`{fsalida}`}</code
+                                            >
+                                        </li>
+                                        <li>
+                                            Ultima Fecha de Pago <code
+                                                class="badge-code"
+                                                >{`{fpago}`}</code
+                                            >
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    {/if}
+                </div>
+                <div class="modal-footer border-0">
+                    <button
+                        type="button"
+                        class="btn btn-secondary px-4"
+                        on:click={() => (showDocxModal = false)}
+                    >
+                        Cerrar
+                    </button>
                 </div>
             </div>
         </div>
@@ -1372,5 +1742,37 @@
         border-radius: 0 !important;
         flex: 1;
         min-width: 0;
+    }
+
+    /* Estilos Modal Instrucciones DOCX */
+    .docx-var-list {
+        list-style: none;
+        padding-left: 0;
+        margin-bottom: 0;
+        font-size: 0.85rem;
+    }
+    .docx-var-list li {
+        padding: 5px 0;
+        border-bottom: 1px dashed #e2e8f0;
+        color: #4a5568;
+        line-height: 1.4;
+    }
+    .docx-var-list li:last-child {
+        border-bottom: none;
+    }
+    .badge-code {
+        font-size: 0.75rem;
+        background: #eef2ff;
+        color: #4338ca;
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid #c7d2fe;
+        font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+            "Courier New", monospace;
+        display: inline-block;
+        margin-top: 2px;
+    }
+    .bg-light-primary {
+        background-color: #f0f7ff;
     }
 </style>
