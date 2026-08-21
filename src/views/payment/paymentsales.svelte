@@ -483,7 +483,7 @@
             <button
                 type="button"
                 class="btn-back"
-                on:click={() => navigate(`/${idcl}/payment`)}
+                on:click={() => navigate(`/payment`)}
             >
                 <i class="fa fa-chevron-left me-1"></i> Volver
             </button>
@@ -563,7 +563,8 @@
                                 <div
                                     class="detail-row py-3 border-bottom d-flex justify-content-between align-items-center"
                                 >
-                                    <span class="text-muted fw-medium d-flex align-items-center gap-2"
+                                    <span
+                                        class="text-muted fw-medium d-flex align-items-center gap-2"
                                         >Total Abonado
                                         {#if totalPagado > 0}
                                             <button
@@ -967,7 +968,9 @@
                                                       : "-"}</td
                                             >
                                             <td>
-                                                #{pay.identifier || pay.id || "-"}
+                                                #{pay.identifier ||
+                                                    pay.id ||
+                                                    "-"}
                                             </td>
                                             <td
                                                 >{pay.payment_method ||
@@ -981,8 +984,7 @@
                                                 <span
                                                     class="badge bg-success-soft text-success"
                                                 >
-                                                    <i
-                                                        class="fa fa-check me-1"
+                                                    <i class="fa fa-check me-1"
                                                     ></i>
                                                     {pay.state ||
                                                         pay.status ||
@@ -999,9 +1001,7 @@
                                 </tbody>
                                 <tfoot class="table-light">
                                     <tr>
-                                        <td
-                                            colspan="4"
-                                            class="text-end fw-bold"
+                                        <td colspan="4" class="text-end fw-bold"
                                             >Total Ingresos:</td
                                         >
                                         <td class="fw-bold text-success">

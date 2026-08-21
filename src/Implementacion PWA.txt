@@ -1,0 +1,279 @@
+# Plan de Trabajo: Módulo Campo (Field Module) — PWA para TourManager
+
+## Descripción General
+
+Agregar un nuevo módulo **"Campo"** (`/campo/...`) a la aplicación Svelte existente (`tourmg_svelte`). Este módulo funcionará como una PWA optimizada para uso en terreno por guías/monitores, diferenciando automáticamente la interfaz según el dispositivo (desktop, tablet, smartphone). Reutiliza el sistema de autenticación ya existente (`authStore`, `secureStorage`, `Login.svelte`).
+
+---
+
+## Decisiones de Diseño a Revisar
+
+> [!IMPORTANT]
+> **¿El backend (Go) ya tiene endpoints para estas entidades?** El módulo necesitará APIs para:
+> - Grupos/actividades de campo
+> - Fichas médicas de alumnos
+> - Asistencia (por lista y por QR)
+> - Identificación de alumnos
+> - Subida de fotos
+>
+> Si no existen, el plan debe incluir trabajo de backend o mocking temporal.
+
+> [!IMPORTANT]
+> **¿Se usará un lector QR de librería o la cámara nativa?** Se propone usar `html5-qrcode` (librería JS liviana), pero si el backend ya genera QR en cierto formato, hay que coordinarlo.
+
+> [!WARNING]
+> **PWA (Service Worker + Manifest):** Actualmente `vite.config.js` no tiene plugin PWA. Se agregará `vite-plugin-pwa`. Esto puede requerir ajustar el proceso de build. ¿Apruebas agregar este plugin?
+
+---
+
+## Preguntas Abiertas
+
+1. ¿El concepto de "trabajo" es equivalente a un "tour/excursión/salida"? ¿Ya existe una entidad similar en el backend?
+2. ¿Las fotos se suben al backend existente o a un storage externo (S3, Cloudinary)?
+3. ¿El QR de los alumnos ya existe generado en el sistema actual (módulo de pagos/apertura)?
+4. ¿El listado de alumnos por grupo viene del módulo de ventas/reservas existente?
+5. ¿Se requiere funcionamiento offline (guardar en IndexedDB y sincronizar al recuperar señal)?
+
+---
+
+## Arquitectura Propuesta
+
+```
+src/
+├── views/
+│   ├── campo/                          # [NUEVA CARPETA]
+│   │   ├── index.svelte                # Dashboard campo (lista de trabajos)
+│   │   ├── trabajo/
+│   │   │   ├── index.svelte            # Lista de actividades del trabajo
+│   │   │   ├── actividad.svelte        # Actividad con inicio/fin + fotos
+│   │   │   └── nueva.svelte            # Crear nuevo trabajo
+│   │   ├── fichamedica/
+│   │   │   └── index.svelte            # Ver ficha médica (nombre/RUT/QR)
+│   │   ├── asistencia/
+│   │   │   ├── lista.svelte            # Asistencia por listado + conteo
+│   │   │   └── qr.svelte               # Asistencia por QR
+│   │   └── identificacion/
+│   │       └── index.svelte            # Identificar alumno (nombre/RUT/QR)
+├── components/
+│   ├── campo/                          # [NUEVA CARPETA]
+│   │   ├── CampoLayout.svelte          # Layout PWA responsive (detecta dispositivo)
+│   │   ├── QrScanner.svelte            # Componente lector QR reutilizable
+│   │   ├── FotoCaptura.svelte          # Componente toma de fotos (cámara nativa)
+│   │   ├── AlumnoCard.svelte           # Tarjeta de alumno (nombre, RUT, foto)
+│   │   └── BottomNav.svelte            # Navegación inferior (móvil)
+└── stores/
+    └── campoStore.js                   # [NUEVO] Estado del módulo campo
+```
+
+---
+
+## Cambios Propuestos
+
+### 1. Configuración PWA
+
+#### [MODIFY] [`vite.config.js`](file:///Users/Antonio_Martinez/Desarrollos/Desarrollo/svelte/tourmg_svelte/vite.config.js)
+- Agregar `vite-plugin-pwa` con configuración de manifest y service worker
+- Definir íconos, colores, orientación portrait para móvil
+
+#### [NEW] `public/manifest.json` (auto-generado por vite-plugin-pwa)
+- `name`, `short_name`, `theme_color`, `display: standalone`
+- Íconos en múltiples resoluciones
+
+#### [MODIFY] [`package.json`](file:///Users/Antonio_Martinez/Desarrollos/Desarrollo/svelte/tourmg_svelte/package.json)
+- Agregar `vite-plugin-pwa`
+- Agregar `html5-qrcode` (lector QR)
+- Agregar `workbox-window` (si se necesita control avanzado del SW)
+
+---
+
+### 2. Detección de Dispositivo
+
+#### [NEW] `src/lib/deviceDetect.js`
+- Función `getDeviceType()` → retorna `'mobile' | 'tablet' | 'desktop'`
+- Basado en `window.innerWidth` + `navigator.userAgentData` (con fallback)
+- Store reactivo `deviceStore` para que los componentes reaccionen
+
+---
+
+### 3. Layout Campo (Responsive PWA)
+
+#### [NEW] [`src/components/campo/CampoLayout.svelte`](file:///Users/Antonio_Martinez/Desarrollos/Desarrollo/svelte/tourmg_svelte/src/components/campo/CampoLayout.svelte)
+- **Desktop**: Sidebar clásico (similar a `MainLayout.svelte`) + protección de ruta con `authStore`
+- **Tablet**: Layout 2 columnas + header compacto
+- **Móvil**: Sin sidebar, con `BottomNav.svelte` (barra inferior con 4 íconos)
+- Reutiliza `authStore` → si no autenticado, redirige a `/login`
+
+#### [NEW] [`src/components/campo/BottomNav.svelte`](file:///Users/Antonio_Martinez/Desarrollos/Desarrollo/svelte/tourmg_svelte/src/components/campo/BottomNav.svelte)
+- Navegación inferior para móvil con íconos: Trabajos | Asistencia | Ficha Médica | Identificar
+
+---
+
+### 4. Store de Campo
+
+#### [NEW] [`src/stores/campoStore.js`](file:///Users/Antonio_Martinez/Desarrollos/Desarrollo/svelte/tourmg_svelte/src/stores/campoStore.js)
+```js
+// Estado global del módulo campo
+{
+  trabajoActual: null,        // trabajo/excursión activa
+  actividadActual: null,      // actividad en progreso
+  grupoAlumnos: [],           // lista del grupo cargada
+  asistencia: {},             // { alumno_id: true/false }
+  fotosPendientes: []         // fotos pendientes de subir
+}
+```
+
+---
+
+### 5. Vistas del Módulo Campo
+
+#### [NEW] `src/views/campo/index.svelte` — Dashboard de Trabajos
+- Lista de trabajos/salidas asignados al guía autenticado
+- Botón "Nuevo Trabajo" → `nueva.svelte`
+- Cada trabajo muestra: nombre, fecha, grupo, estado (pendiente/activo/cerrado)
+
+#### [NEW] `src/views/campo/trabajo/nueva.svelte` — Crear Trabajo
+- Formulario: nombre del trabajo, fecha, seleccionar grupo de alumnos
+- Al guardar → redirige a la vista de actividades del trabajo
+
+#### [NEW] `src/views/campo/trabajo/index.svelte` — Actividades del Trabajo
+- Lista de actividades del trabajo seleccionado
+- Botón "Agregar Actividad"
+- Indicador visual de actividad activa (en curso)
+
+#### [NEW] `src/views/campo/trabajo/actividad.svelte` — Actividad en Terreno
+**Flujo principal:**
+1. **Botón "INICIAR ACTIVIDAD"** → registra timestamp inicio, cambia estado visual
+2. Durante la actividad: botón **"📷 Tomar Foto"** → abre cámara nativa (`<input type="file" capture="environment">`) → muestra preview + sube al servidor
+3. **Botón "FINALIZAR ACTIVIDAD"** → registra timestamp fin, muestra resumen (duración + fotos tomadas)
+
+#### [NEW] `src/views/campo/fichamedica/index.svelte` — Ficha Médica del Alumno
+**3 modos de búsqueda (tabs/toggle):**
+- **Por Nombre**: input de texto con autocompletado del grupo
+- **Por RUT**: input con validación formato RUT chileno
+- **Por QR**: activa `QrScanner.svelte` → lee QR → carga ficha
+
+**Vista de ficha** muestra: foto, datos personales, alergias, medicamentos, contacto de emergencia, grupo sanguíneo, observaciones médicas.
+
+#### [NEW] `src/views/campo/asistencia/lista.svelte` — Asistencia por Lista
+- Selector de grupo (si hay múltiples grupos en el trabajo)
+- **Listado de alumnos** con checkbox de asistencia
+- **Contador dinámico**: "X de Y presentes" (actualiza en tiempo real)
+- Botón "Guardar Asistencia" → POST al backend
+
+#### [NEW] `src/views/campo/asistencia/qr.svelte` — Asistencia por QR
+- Activa `QrScanner.svelte` en modo continuo
+- Al leer QR de alumno → marca asistencia automáticamente
+- Muestra confirmación visual (tarjeta verde con foto + nombre)
+- Contador acumulativo visible
+
+#### [NEW] `src/views/campo/identificacion/index.svelte` — Identificar Alumno
+**3 modos de búsqueda (igual que ficha médica):**
+- Por Nombre | Por RUT | Por QR
+- Resultado: `AlumnoCard.svelte` con foto, nombre completo, RUT, grupo, datos de contacto de apoderado
+
+---
+
+### 6. Componentes Compartidos
+
+#### [NEW] `src/components/campo/QrScanner.svelte`
+- Wrapper de `html5-qrcode`
+- Props: `onScan(data)`, `continuous: boolean`, `onError(err)`
+- Manejo de permisos de cámara con mensajes claros al usuario
+
+#### [NEW] `src/components/campo/FotoCaptura.svelte`
+- `<input type="file" accept="image/*" capture="environment">`
+- Preview inmediato de la foto
+- Compresión antes de subir (canvas API)
+- Indicador de subida + confirmación
+
+#### [NEW] `src/components/campo/AlumnoCard.svelte`
+- Tarjeta visual de alumno con avatar, nombre, RUT, grupo
+- Variante compacta (lista) y expandida (identificación)
+
+---
+
+### 7. Rutas en App.svelte
+
+#### [MODIFY] [`src/App.svelte`](file:///Users/Antonio_Martinez/Desarrollos/Desarrollo/svelte/tourmg_svelte/src/App.svelte)
+```svelte
+<!-- Módulo Campo -->
+<Route path="/campo">          <CampoLayout><CampoIndex /></CampoLayout></Route>
+<Route path="/campo/trabajo/nueva">    <CampoLayout><TrabajoNueva /></CampoLayout></Route>
+<Route path="/campo/trabajo/:id">      <CampoLayout><TrabajoIndex /></CampoLayout></Route>
+<Route path="/campo/actividad/:id">    <CampoLayout><Actividad /></CampoLayout></Route>
+<Route path="/campo/ficha">            <CampoLayout><FichaMedica /></CampoLayout></Route>
+<Route path="/campo/asistencia/lista"> <CampoLayout><AsistenciaLista /></CampoLayout></Route>
+<Route path="/campo/asistencia/qr">    <CampoLayout><AsistenciaQr /></CampoLayout></Route>
+<Route path="/campo/identificacion">   <CampoLayout><Identificacion /></CampoLayout></Route>
+```
+
+---
+
+### 8. Sidebar Existente — Agregar Enlace
+
+#### [MODIFY] [`src/components/Sidebar.svelte`](file:///Users/Antonio_Martinez/Desarrollos/Desarrollo/svelte/tourmg_svelte/src/components/Sidebar.svelte)
+- Agregar ítem de menú "Campo" → `/campo` con ícono de brújula/mapa
+
+---
+
+## Plan de Implementación por Fases
+
+### Fase 1 — Infraestructura PWA y Detección de Dispositivo (Día 1)
+- [ ] Instalar `vite-plugin-pwa` y `html5-qrcode`
+- [ ] Configurar PWA en `vite.config.js` (manifest, service worker)
+- [ ] Crear `src/lib/deviceDetect.js`
+- [ ] Crear `src/stores/campoStore.js`
+- [ ] Crear `src/components/campo/CampoLayout.svelte` (con detección y protección de ruta)
+- [ ] Crear `src/components/campo/BottomNav.svelte`
+
+### Fase 2 — Componentes Compartidos (Día 1-2)
+- [ ] Crear `QrScanner.svelte`
+- [ ] Crear `FotoCaptura.svelte`
+- [ ] Crear `AlumnoCard.svelte`
+
+### Fase 3 — Módulo Trabajos y Actividades (Día 2-3)
+- [ ] `campo/index.svelte` — Dashboard
+- [ ] `campo/trabajo/nueva.svelte` — Crear trabajo
+- [ ] `campo/trabajo/index.svelte` — Lista actividades
+- [ ] `campo/trabajo/actividad.svelte` — Inicio/fin + fotos
+
+### Fase 4 — Ficha Médica e Identificación (Día 3-4)
+- [ ] `campo/fichamedica/index.svelte`
+- [ ] `campo/identificacion/index.svelte`
+
+### Fase 5 — Asistencia (Día 4)
+- [ ] `campo/asistencia/lista.svelte`
+- [ ] `campo/asistencia/qr.svelte`
+
+### Fase 6 — Integración y Pulido (Día 5)
+- [ ] Agregar rutas en `App.svelte`
+- [ ] Agregar enlace en `Sidebar.svelte`
+- [ ] Pruebas en móvil real (PWA instalable)
+- [ ] Ajustes responsive
+
+---
+
+## Plan de Verificación
+
+### Automatizado
+- `npm run build` — sin errores de compilación Svelte/Vite
+- Lighthouse PWA audit → score > 90
+
+### Manual
+- **Desktop**: abrir en navegador de escritorio → layout con sidebar
+- **Tablet**: emular tablet en DevTools → layout 2 columnas
+- **Móvil**: instalar como PWA en Android/iOS → layout con barra inferior
+- **Flujo actividad**: iniciar → tomar foto → finalizar → verificar timestamps
+- **QR**: escanear QR de alumno de prueba → mostrar ficha/marcar asistencia
+- **Asistencia por lista**: cargar grupo, marcar alumnos, guardar
+- **Offline**: desconectar red → verificar que la app sigue cargando
+
+---
+
+## Dependencias Nuevas a Instalar
+
+```bash
+npm install vite-plugin-pwa html5-qrcode
+# Opcional para offline avanzado:
+npm install workbox-window
+```

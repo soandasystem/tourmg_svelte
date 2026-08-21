@@ -191,27 +191,18 @@
                 </div>
             {:else}
                 <div class="info-grid">
-                    {#if !isGeneral}
-                        <div class="info-item">
-                            <i class="fa fa-user-circle-o"></i>
-                            <div>
-                                <span class="info-label">Alumno</span>
-                                <span>{alumno || "No registrado"}</span>
-                            </div>
-                        </div>
-                        <div class="info-item">
-                            <i class="fa fa-university"></i>
-                            <div>
-                                <span class="info-label">Colegio</span>
-                                <span>{colegio || "No registrado"}</span>
-                            </div>
-                        </div>
-                    {/if}
                     <div class="info-item">
-                        <i class="fa fa-map-signs"></i>
+                        <i class="fa fa-user-circle-o"></i>
                         <div>
-                            <span class="info-label">Programa</span>
-                            <span>{programa || "N/A"}</span>
+                            <span class="info-label">Alumno</span>
+                            <span>{alumno || "No registrado"}</span>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <i class="fa fa-university"></i>
+                        <div>
+                            <span class="info-label">Colegio</span>
+                            <span>{colegio || "No registrado"}</span>
                         </div>
                     </div>
                     <div class="info-item">
@@ -219,6 +210,15 @@
                         <div>
                             <span class="info-label">Curso</span>
                             <span>{curso || "N/A"}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <i class="fa fa-map-signs"></i>
+                        <div>
+                            <span class="info-label">Programa</span>
+                            <span>{programa || "N/A"}</span>
                         </div>
                     </div>
                     <div class="info-item">
@@ -270,19 +270,9 @@
         <div class="steps-grid">
             <!-- Opción 1: Alumno -->
             <div
-                class="step-card {contratoFirmado ? 'locked' : ''}"
+                class="step-card {!isAuthorized ? 'locked' : ''}"
                 in:fly={{ y: 50, delay: 100, duration: 600 }}
             >
-                <!--
-                {#if contratoFirmado}
-                    <div
-                        class="lock-overlay"
-                        title="Contrato firmado. Información bloqueada."
-                    >
-                        <i class="fa fa-lock"></i>
-                    </div>
-                {/if}
-                -->
                 <div class="step-icon">
                     <i class="fa fa-user"></i>
                 </div>
@@ -292,17 +282,6 @@
                     hacerlo mientras no firmes el contrato.
                 </p>
                 <div class="card-footer">
-                    <!---
-                    {#if contratoFirmado}
-                        <button
-                            class="btn-step disabled"
-                            title="La información está bloqueada porque el contrato ya fue firmado"
-                            disabled
-                        >
-                            Bloqueado <i class="fa fa-lock"></i>
-                        </button>
-                    {:else}
-                -->
                     <button
                         type="button"
                         on:click={() => navigate(`/payment/passengers`)}
@@ -310,9 +289,6 @@
                     >
                         Ir <i class="fa fa-arrow-right"></i>
                     </button>
-                    <!--     
-                    {/if}
-                    -->
                 </div>
             </div>
 
