@@ -21,9 +21,10 @@
     const author = userData.username || "";
     const currentCompanyId = userData.company || 0;
     const saleId = userData.sale || 0;
-    const passengersId = userData.id || 0;
+    const passengersId = userData.id || userData.user_curso_id;
     const userrut = userData.userrut || "";
     const mpagar = userData.mpagar || 0;
+    const position = userData.position || "";
 
     async function handleSubmit(event) {
         event.preventDefault();
@@ -38,13 +39,14 @@
                 fechainicial: fechainicial,
                 identificador: identificador,
                 company_id: currentCompanyId,
-                sale_id: saleId,
+                sale_id: parseInt(saleId),
                 curso_id: Number(passengersId),
                 user_rut: userrut,
                 urlreturn: urlReturn + "/flowpagos/returnFlow",
                 urlconfirmation:
                     "https://tourmg-go.onrender.com/api/v3.5/token",
             };
+            console.log("payload ", payload);
             const result = await api.setData(
                 "iniciopagoflow",
                 JSON.stringify(payload),
@@ -84,7 +86,11 @@
         }
     }
     function handleBack() {
-        navigate(`/payment/paymentsales`);
+        if (position == "General") {
+            navigate(`/opening/paymentrsv`);
+        } else {
+            navigate(`/payment/paymentsales`);
+        }
     }
 </script>
 

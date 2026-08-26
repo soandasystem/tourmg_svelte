@@ -5,36 +5,61 @@
     import ComprobantePdf from "../generate_pdf/comprobante_pdf.svelte";
 
     const userData = secureStorage.getItem("_us_") || {};
-    const token = userData.flowt || "F91853D876573BD763C08ABF3F647687AA7AAB8Y";
     const position = userData.position || "General";
 
-    const fetchData = async () => {
-        const payload = {
-            token: token,
-        };
-        console.log("token flow", token);
-        const result = await api.setData(
-            "consulta-token",
-            JSON.stringify(payload),
-            "",
-            "",
-            "global",
-        );
-        if (result.status !== "success") {
-            throw new Error(
-                result.message || "Error al iniciar el pago con Flow",
-            );
-        }
-        const data = result.data;
-
-        console.log("DATA:", data);
-
-        if (data?.items?.length > 0) {
-            flowData = data.items[0];
-        }
-    };
     let flowData = null;
     let showPdfModal = false;
+    let loading = true;
+    let errorMessage = "";
+
+    const fetchData = async () => {
+        try {
+            loading = true;
+            errorMessage = "";
+
+            // 1. Extraer el token de la URL (GET param ?token=...) o del storage
+            const urlParams = new URLSearchParams(window.location.search);
+            const tokenFromUrl = urlParams.get("token");
+            const token =
+                tokenFromUrl ||
+                userData.flowt ||
+                "F91853D876573BD763C08ABF3F647687AA7AAB8Y";
+
+            console.log("token flow a consultar:", token);
+            const payload = {
+                token: token,
+            };
+
+            const result = await api.setData(
+                "consulta-token",
+                JSON.stringify(payload),
+                "",
+                "",
+                "global",
+            );
+
+            if (result.status !== "success") {
+                throw new Error(
+                    result.message || "Error al consultar la información del pago con Flow",
+                );
+            }
+
+            const data = result.data;
+            console.log("DATA FLOW RESULT:", data);
+
+            if (data?.items?.length > 0) {
+                flowData = data.items[0];
+            } else if (data && !Array.isArray(data)) {
+                flowData = data;
+            }
+        } catch (err) {
+            console.error("Error en returnflow:", err);
+            errorMessage =
+                err.message || "Ocurrió un error al verificar la transacción.";
+        } finally {
+            loading = false;
+        }
+    };
 
     function handleDownload() {
         if (flowData) {
@@ -48,7 +73,19 @@
 </script>
 
 <div class="panel text-center">
-    {#if flowData}
+    {#if errorMessage}
+        <div class="panel-body text-danger">
+            <h4 class="fw-bold mb-3">Error al procesar la transacción</h4>
+            <p>{errorMessage}</p>
+            <div class="btn-container">
+                {#if position === "General"}
+                    <a href="/opening" class="btnn">Volver a Inicio</a>
+                {:else}
+                    <a href="/payment" class="btnn">Volver a Pagos</a>
+                {/if}
+            </div>
+        </div>
+    {:else if flowData}
         <div class="panel-body">
             <!-- Título de la confirmación -->
             <table

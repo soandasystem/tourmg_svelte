@@ -360,7 +360,7 @@
                     "Contrato firmado y aceptado correctamente.",
                     "success",
                 ).then(() => {
-                    navigate(`/${idcl}/opening`);
+                    navigate(`/payment`);
                 });
             } else {
                 Swal.fire(

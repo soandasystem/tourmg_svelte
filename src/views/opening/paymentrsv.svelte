@@ -1,4 +1,4 @@
-clear<script>
+<script>
     import { onMount } from "svelte";
     import { fade } from "svelte/transition";
     import { navigate } from "svelte-routing";
@@ -26,7 +26,7 @@ clear<script>
     const saleId = userData.sale || 0;
     const companyId = userData.company || 0;
     const schema = userData.schema || "";
-
+    console.log("userData", userData);
     const fetchData = async () => {
         try {
             loading = true;
@@ -110,6 +110,38 @@ clear<script>
         if (gw.gateway_image.startsWith("assets/"))
             return "/" + gw.gateway_image;
         return `/assets/${gw.gateway_image}`;
+    }
+
+    function getGatewayActionUrl(gw) {
+        if (!gw || !gw.gateway_url) return "#";
+        const url = gw.gateway_url;
+        if (url.includes("/payment/flowpagos/continuaflow")) {
+            return url.replace(
+                "/payment/flowpagos/continuaflow",
+                "/flowpagos/continuaflow",
+            );
+        }
+        return url;
+    }
+
+    function payWithGateway(gw) {
+        if ((apagar ?? 0) != 0 && (apagar ?? 0) >= 500) {
+            const ud = secureStorage.getItem("_us_") || {};
+            ud.mpagar = apagar;
+            secureStorage.setItem("_us_", ud);
+            const url = getGatewayActionUrl(gw);
+            if (url.startsWith("http")) {
+                window.location.href = url;
+            } else {
+                navigate(url);
+            }
+        } else {
+            Swal.fire(
+                "Pago",
+                "El Monto a pagar debe ser superior a $500.",
+                "error",
+            );
+        }
     }
 
     async function handleVoucherSubmit(event) {
@@ -223,7 +255,6 @@ clear<script>
                         sale_id: Number(venta.id),
                     };
 
-                    console.log("paymentData", paymentData);
                     const ResinsertPayment = await api.setData(
                         "payment",
                         JSON.stringify(paymentData),
@@ -329,7 +360,7 @@ clear<script>
                         text: "El comprobante de pago ha sido validado y procesado de manera correcta.",
                         icon: "success",
                     }).then(() => {
-                        navigate(`/${$tenantStore}/opening`);
+                        navigate(`/opening`);
                     });
                 } else {
                     // Si el voucher ya fue usado
@@ -346,7 +377,7 @@ clear<script>
                         text: "Este número de comprobante ya ha sido ingresado en el sistema.",
                         icon: "warning",
                     }).then(() => {
-                        navigate(`/${$tenantStore}/opening`);
+                        navigate(`/opening`);
                     });
                 }
             } else {
@@ -386,9 +417,7 @@ clear<script>
         >
             <div class="d-flex align-items-center gap-3">
                 <i class="fa fa-credit-card text-primary fa-lg"></i>
-                <h3 class="m-0 text-dark fw-bold header-title">
-                    Pago Reserva
-                </h3>
+                <h3 class="m-0 text-dark fw-bold header-title">Pago Reserva</h3>
             </div>
             <button
                 type="button"
@@ -398,7 +427,6 @@ clear<script>
                 <i class="fa fa-chevron-left me-1"></i> Volver
             </button>
         </div>
-
 
         <div class="card-body p-4">
             <div class="row g-4">
@@ -438,10 +466,9 @@ clear<script>
                             ¿Ya pagaste?
                         </h5>
                         <p class="text-muted small mb-3">
-                            Si realizaste una transferencia o depósito, ingresa el
-                            número de comprobante para informar tu pago.
+                            Si realizaste una transferencia o depósito, ingresa
+                            el número de comprobante para informar tu pago.
                         </p>
-
 
                         <form on:submit|preventDefault={handleVoucherSubmit}>
                             <div class="form-group-custom mb-3">
@@ -495,47 +522,37 @@ clear<script>
                         <div class="row g-3">
                             {#each gatewaysc as gw}
                                 <div class="col-sm-6">
-                                    <form
-                                        method="post"
-                                        action={gw.gateway_url}
-                                        target="_blank"
-                                        class="h-100"
+                                    <button
+                                        type="button"
+                                        class="gateway-card-btn w-100 h-100 p-4 d-flex flex-column align-items-center justify-content-center text-center"
+                                        on:click={() => payWithGateway(gw)}
                                     >
-                                        <input
-                                            type="hidden"
-                                            name="mpagar"
-                                            value={apagar}
-                                        />
-                                        <button
-                                            type="submit"
-                                            class="gateway-card-btn w-100 h-100 p-4 d-flex flex-column align-items-center justify-content-center text-center"
+                                        <div
+                                            class="gateway-logo-wrapper mb-3 d-flex align-items-center justify-content-center"
                                         >
-                                            <div
-                                                class="gateway-logo-wrapper mb-3 d-flex align-items-center justify-content-center"
-                                            >
-                                                <img
-                                                    src={getGatewayImage(gw)}
-                                                    alt={gw.gateway_name ||
-                                                        gw.name ||
-                                                        gw.gateway_type}
-                                                    class="gateway-image"
-                                                />
-                                            </div>
-                                            <span
-                                                class="gateway-name fw-bold text-dark"
-                                                >{gw.gateway_name ||
+                                            <img
+                                                src={getGatewayImage(gw)}
+                                                alt={gw.gateway_name ||
                                                     gw.name ||
-                                                    gw.gateway_type}</span
-                                            >
-                                            <span
-                                                class="gateway-pay-text mt-2 text-primary small fw-semibold"
-                                            >
-                                                Pagar ahora <i
-                                                    class="fa fa-external-link ms-1"
-                                                ></i>
-                                            </span>
-                                        </button>
-                                    </form>
+                                                    gw.gateway_type}
+                                                class="gateway-image"
+                                            />
+                                        </div>
+                                        <span
+                                            class="gateway-name fw-bold text-dark"
+                                        >
+                                            {gw.gateway_name ||
+                                                gw.name ||
+                                                gw.gateway_type}
+                                        </span>
+                                        <div
+                                            class="gateway-pay-text mt-2 d-flex align-items-center justify-content-center"
+                                        >
+                                            <i
+                                                class="fa fa-external-link ms-1 text-primary"
+                                            ></i>
+                                        </div>
+                                    </button>
                                 </div>
                             {/each}
                         </div>
@@ -563,7 +580,7 @@ clear<script>
                 <button
                     type="button"
                     class="btn-back px-4 py-2"
-                    on:click={() => navigate(`/${$tenantStore}/opening`)}
+                    on:click={() => navigate(`/opening`)}
                 >
                     <i class="fa fa-chevron-left me-2"></i> Volver a Opciones
                 </button>

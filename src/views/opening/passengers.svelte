@@ -206,7 +206,16 @@
             if (data.status === "success") {
                 // Actualizar Store y Sesión
                 const newId =
-                    data.data?.data?.return_id || data.data?.id || data.data;
+                    data.data?.data?.return_id ||
+                    data.data?.return_id ||
+                    data.data?.id ||
+                    data.return_id ||
+                    data.id ||
+                    (typeof data.data === "number" ||
+                    typeof data.data === "string"
+                        ? data.data
+                        : null);
+
                 openingStore.update((s) => ({
                     ...s,
                     user_curso_id: newId,
@@ -219,11 +228,18 @@
                 secureStorage.setItem("user_rut", courseForm.rutapod);
                 secureStorage.setItem("paso", "1");
 
+                // Actualizar datos del usuario en _us_ para que continuaflow / pago tengan id y user_curso_id
+                const userDataObj = secureStorage.getItem("_us_") || {};
+                userDataObj.id = newId;
+                userDataObj.user_curso_id = newId;
+                userDataObj.userrut = courseForm.rutapod;
+                secureStorage.setItem("_us_", userDataObj);
+
                 // Grabar cuotas del pasajero
                 const selectedSaleForInstallments = sales.find(
                     (s) => s.id == courseForm.sale_id,
                 );
-                if (selectedSaleForInstallments) {
+                if (selectedSaleForInstallments && newId) {
                     await saveInstallments(newId, selectedSaleForInstallments);
                 }
 
@@ -232,7 +248,7 @@
                     "Pasajero registrado correctamente.",
                     "success",
                 ).then(() => {
-                    navigate(`/${idcl}/opening`);
+                    navigate(`/opening`);
                 });
             } else {
                 // Intentamos buscar el alumno existente con los mismos sale_id, rutalumno y company_id
@@ -262,7 +278,12 @@
                             schemaName,
                         );
                         if (updateRes.status === "success") {
-                            const newId = updateRes.data?.data?.return_id;
+                            const newId =
+                                updateRes.data?.data?.return_id ||
+                                updateRes.data?.return_id ||
+                                updateRes.data?.id ||
+                                existingRecord.id;
+
                             console.log("newId ", newId);
                             openingStore.update((s) => ({
                                 ...s,
@@ -282,11 +303,18 @@
                             );
                             secureStorage.setItem("paso", "1");
 
+                            const userDataObj =
+                                secureStorage.getItem("_us_") || {};
+                            userDataObj.id = newId;
+                            userDataObj.user_curso_id = newId;
+                            userDataObj.userrut = courseForm.rutapod;
+                            secureStorage.setItem("_us_", userDataObj);
+
                             // Grabar cuotas del pasajero (actualización)
                             const selectedSaleForInstallments = sales.find(
                                 (s) => s.id == courseForm.sale_id,
                             );
-                            if (selectedSaleForInstallments) {
+                            if (selectedSaleForInstallments && newId) {
                                 await saveInstallments(
                                     newId,
                                     selectedSaleForInstallments,

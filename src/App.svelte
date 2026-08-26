@@ -181,4 +181,7 @@
     <Route path="/flowpagos/returnFlow">
         <Returnflow />
     </Route>
+    <Route path="/flowpagos/returnflow">
+        <Returnflow />
+    </Route>
 </Router>

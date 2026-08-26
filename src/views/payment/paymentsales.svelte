@@ -38,11 +38,21 @@
     // Modo multi-cuota: lista de cuotas pendientes
     /** @type {any[]} */
     let cuotasPendientes = [];
-    /** @type {number|null} */
-    let selectedInstallmentId = null;
-    let selectedInstallmentAmount = 0;
+    /** @type {any[]} */
+    let allInstallments = [];
+    /** @type {Set<number>} */
+    let selectedInstallmentIds = new Set();
 
     $: isSingle = mode === "single";
+    $: selectedInstallmentAmount = [...selectedInstallmentIds].reduce(
+        (sum, id) => {
+            const inst = allInstallments.find(
+                (i) => Number(i.id) === Number(id),
+            );
+            return sum + (inst ? Number(inst.balance || 0) : 0);
+        },
+        0,
+    );
     $: apagar = isSingle ? totalAPagar : selectedInstallmentAmount;
 
     // Modal Detalle de Pagos
@@ -125,30 +135,37 @@
                 "",
                 schema,
             );
+            let instData = [];
+            if (instRes.status === "success" && instRes.data) {
+                if (Array.isArray(instRes.data)) {
+                    instData = instRes.data;
+                } else if (Array.isArray(instRes.data.items)) {
+                    instData = instRes.data.items;
+                } else if (Array.isArray(instRes.data.Items)) {
+                    instData = instRes.data.Items;
+                }
+            }
 
-            if (
-                instRes.status === "success" &&
-                Array.isArray(instRes.data) &&
-                instRes.data.length > 0
-            ) {
-                if (isSingle) {
+            if (instData.length > 0) {
+                if (saleData.cuotas > 1) {
+                    mode = "multi";
+                }
+                if (mode === "single") {
                     // Cuota única: tomar la primera (o la única)
-                    const inst = instRes.data[0];
+                    const inst = instData[0];
                     totalVpagar = Number(inst.amount || 0);
                     totalPagado = Number(inst.paid_amount || 0);
                     totalAPagar = Number(inst.balance || 0);
                 } else {
-                    // Multi-cuota: filtrar solo las que tienen saldo > 0
-                    cuotasPendientes = instRes.data.filter(
+                    // Multi-cuota: guardar todas y filtrar pendientes
+                    allInstallments = instData;
+                    cuotasPendientes = instData.filter(
                         (inst) => Number(inst.balance || 0) > 0,
                     );
-                    // Pre-seleccionar la primera cuota pendiente
-                    if (cuotasPendientes.length > 0) {
-                        selectedInstallmentId = cuotasPendientes[0].id;
-                        selectedInstallmentAmount = Number(
-                            cuotasPendientes[0].balance || 0,
-                        );
-                    }
+                    // Pre-seleccionar todas las cuotas pendientes
+                    selectedInstallmentIds = new Set(
+                        cuotasPendientes.map((inst) => inst.id),
+                    );
                 }
             }
 
@@ -189,11 +206,26 @@
 
     onMount(fetchData);
     // ─────────────────────────────────────────────────────
-    //  SELECCIÓN DE CUOTA (modo multi)
+    //  SELECCIÓN DE CUOTAS (modo multi – checkbox)
     // ─────────────────────────────────────────────────────
-    function selectInstallment(inst) {
-        selectedInstallmentId = inst.id;
-        selectedInstallmentAmount = Number(inst.balance || 0);
+    function toggleInstallment(inst) {
+        const id = inst.id;
+        if (selectedInstallmentIds.has(id)) {
+            selectedInstallmentIds.delete(id);
+        } else {
+            selectedInstallmentIds.add(id);
+        }
+        selectedInstallmentIds = new Set(selectedInstallmentIds); // trigger reactivity
+    }
+
+    function selectAllPending() {
+        selectedInstallmentIds = new Set(
+            cuotasPendientes.map((inst) => inst.id),
+        );
+    }
+
+    function deselectAll() {
+        selectedInstallmentIds = new Set();
     }
 
     // ─────────────────────────────────────────────────────
@@ -218,6 +250,10 @@
         if ((apagarInput ?? 0) != 0 && (apagarInput ?? 0) >= 500) {
             const ud = secureStorage.getItem("_us_") || {};
             ud.mpagar = apagarInput;
+            // Guardar IDs de cuotas seleccionadas para referencia posterior
+            if (!isSingle) {
+                ud.selectedInstallments = [...selectedInstallmentIds];
+            }
             secureStorage.setItem("_us_", ud);
             // Redirige a la URL de la pasarela
             const url = getGatewayActionUrl(gw);
@@ -229,7 +265,7 @@
         } else {
             Swal.fire(
                 "Pago",
-                "El Monto a pagar debe ser superios a $500 y menor o igual al saldo a pagar.",
+                "El Monto a pagar debe ser superior a $500 y menor o igual al saldo a pagar.",
                 "error",
             );
         }
@@ -251,6 +287,15 @@
         return `Cuota ${idx + 1}`;
     }
 
+    function getInstallmentStatus(inst) {
+        const balance = Number(inst.balance || 0);
+        const amount = Number(inst.amount || 0);
+        const paid = Number(inst.paid_amount || 0);
+        if (balance <= 0) return "pagada";
+        if (paid > 0 && balance > 0) return "parcial";
+        return "pendiente";
+    }
+
     // ─────────────────────────────────────────────────────
     //  PAGO CON VOUCHER
     // ─────────────────────────────────────────────────────
@@ -258,14 +303,12 @@
         event.preventDefault();
 
         const montoAPagar = apagar;
-        const installmentId = isSingle
-            ? null // se resolverá dentro
-            : selectedInstallmentId;
+        const selectedIds = isSingle ? [] : [...selectedInstallmentIds];
 
-        if (!isSingle && !installmentId) {
+        if (!isSingle && selectedIds.length === 0) {
             Swal.fire(
                 "Atención",
-                "Selecciona una cuota pendiente para pagar.",
+                "Selecciona al menos una cuota pendiente para pagar.",
                 "warning",
             );
             return;
@@ -368,42 +411,22 @@
                 : ResinsertPayment.data;
             const paymentId = insertPayment?.data?.return_id;
 
-            // 4. Actualizar installment
-            let instIdToUpdate = installmentId;
+            // 4. Actualizar installments
+            // Obtener cuotas actualizadas
+            const allInstRes = await api.getData(
+                "installment",
+                "",
+                `sale_id=${saleId}&passenger_id=${passengerCursoId}&company_id=${companyId}`,
+                "",
+                schema,
+            );
+            const allInst = Array.isArray(allInstRes.data)
+                ? allInstRes.data
+                : [];
+
             if (isSingle) {
-                // Obtener la cuota única
-                const instRes = await api.getData(
-                    "installment",
-                    "",
-                    `sale_id=${saleId}&passenger_id=${passengerCursoId}&company_id=${companyId}`,
-                    "",
-                    schema,
-                );
-                if (
-                    instRes.status === "success" &&
-                    Array.isArray(instRes.data) &&
-                    instRes.data.length > 0
-                ) {
-                    instIdToUpdate = instRes.data[0].id;
-                }
-            }
-
-            if (instIdToUpdate) {
-                // Buscar la cuota para calcular nuevo saldo
-                const allInstRes = await api.getData(
-                    "installment",
-                    "",
-                    `sale_id=${saleId}&passenger_id=${passengerCursoId}&company_id=${companyId}`,
-                    "",
-                    schema,
-                );
-                const allInst = Array.isArray(allInstRes.data)
-                    ? allInstRes.data
-                    : [];
-                const inst = allInst.find(
-                    (i) => Number(i.id) === Number(instIdToUpdate),
-                );
-
+                // Cuota única: actualizar la primera
+                const inst = allInst.length > 0 ? allInst[0] : null;
                 if (inst) {
                     const newPaid =
                         Number(inst.paid_amount || 0) + Number(montoAPagar);
@@ -419,8 +442,6 @@
                         inst.id,
                         schema,
                     );
-
-                    // 5. Vincular pago con cuota
                     if (paymentId) {
                         await api.setData(
                             "payment_installment",
@@ -433,6 +454,41 @@
                             "",
                             schema,
                         );
+                    }
+                }
+            } else {
+                // Multi-cuota: actualizar cada cuota seleccionada por su balance completo
+                for (const instId of selectedIds) {
+                    const inst = allInst.find(
+                        (i) => Number(i.id) === Number(instId),
+                    );
+                    if (inst) {
+                        const cuotaBalance = Number(inst.balance || 0);
+                        const newPaid =
+                            Number(inst.paid_amount || 0) + cuotaBalance;
+                        await api.updateData(
+                            "installment",
+                            JSON.stringify({
+                                paid_amount: newPaid,
+                                balance: 0,
+                            }),
+                            "",
+                            inst.id,
+                            schema,
+                        );
+                        if (paymentId) {
+                            await api.setData(
+                                "payment_installment",
+                                JSON.stringify({
+                                    payment_id: Number(paymentId),
+                                    installment_id: Number(inst.id),
+                                    applied_amount: cuotaBalance,
+                                }),
+                                "",
+                                "",
+                                schema,
+                            );
+                        }
                     }
                 }
             }
@@ -611,43 +667,84 @@
                                 <i class="fa fa-list-alt me-2"></i> Ver Pagos Realizados
                             </button>
                         {:else}
-                            <!-- MODO MULTI-CUOTA: listar cuotas pendientes -->
+                            <!-- MODO MULTI-CUOTA: listar TODAS las cuotas con checkbox -->
                             <div class="payment-detail-card p-4 rounded-4 mb-4">
                                 <h5 class="fw-bold mb-3 text-dark">
                                     <i class="fa fa-list-ol text-primary me-2"
                                     ></i>
-                                    Cuotas Pendientes
+                                    Cuotas del Viaje
                                 </h5>
 
-                                {#if cuotasPendientes.length === 0}
+                                {#if allInstallments.length === 0}
                                     <div class="alert-paid">
                                         <i class="fa fa-check-circle me-2"></i>
-                                        No tienes cuotas pendientes.
+                                        No se encontraron cuotas.
                                     </div>
                                 {:else}
-                                    <p class="text-muted small mb-3">
-                                        Selecciona la cuota que deseas pagar:
+                                    <p class="text-muted small mb-2">
+                                        Marca las cuotas que deseas pagar:
                                     </p>
-                                    <div class="installments-list">
-                                        {#each cuotasPendientes as inst, idx}
+
+                                    <!-- Botones seleccionar/deseleccionar todo -->
+                                    {#if cuotasPendientes.length > 1}
+                                        <div class="d-flex gap-2 mb-3">
                                             <button
                                                 type="button"
-                                                class="installment-item {selectedInstallmentId ===
-                                                inst.id
+                                                class="btn-select-all"
+                                                on:click={selectAllPending}
+                                            >
+                                                <i
+                                                    class="fa fa-check-square-o me-1"
+                                                ></i> Seleccionar todas
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="btn-deselect-all"
+                                                on:click={deselectAll}
+                                            >
+                                                <i class="fa fa-square-o me-1"
+                                                ></i> Deseleccionar
+                                            </button>
+                                        </div>
+                                    {/if}
+
+                                    <div class="installments-list">
+                                        {#each allInstallments as inst, idx}
+                                            {@const status =
+                                                getInstallmentStatus(inst)}
+                                            {@const isPending =
+                                                status === "pendiente" ||
+                                                status === "parcial"}
+                                            {@const isChecked =
+                                                selectedInstallmentIds.has(
+                                                    inst.id,
+                                                )}
+                                            <button
+                                                type="button"
+                                                class="installment-item {isChecked
                                                     ? 'selected'
+                                                    : ''} {!isPending
+                                                    ? 'is-paid'
                                                     : ''}"
-                                                on:click={() =>
-                                                    selectInstallment(inst)}
+                                                on:click={() => {
+                                                    if (isPending)
+                                                        toggleInstallment(inst);
+                                                }}
+                                                disabled={!isPending}
                                             >
                                                 <div class="inst-left">
                                                     <div class="inst-check">
-                                                        {#if selectedInstallmentId === inst.id}
+                                                        {#if !isPending}
                                                             <i
-                                                                class="fa fa-check-circle text-primary"
+                                                                class="fa fa-check-square text-success"
+                                                            ></i>
+                                                        {:else if isChecked}
+                                                            <i
+                                                                class="fa fa-check-square text-primary"
                                                             ></i>
                                                         {:else}
                                                             <i
-                                                                class="fa fa-circle-o text-muted"
+                                                                class="fa fa-square-o text-muted"
                                                             ></i>
                                                         {/if}
                                                     </div>
@@ -658,21 +755,32 @@
                                                                 idx,
                                                             )}</span
                                                         >
-                                                        {#if inst.due_date}
-                                                            <span
-                                                                class="inst-due text-muted"
-                                                            >
-                                                                Vto. {dayjs(
-                                                                    inst.due_date,
-                                                                ).format(
-                                                                    "DD/MM/YYYY",
+                                                        <span
+                                                            class="inst-details text-muted"
+                                                        >
+                                                            Total: {formatCurrency(
+                                                                Number(
+                                                                    inst.amount ||
+                                                                        0,
+                                                                ),
+                                                            )}
+                                                            {#if Number(inst.paid_amount || 0) > 0}
+                                                                · Abonado: {formatCurrency(
+                                                                    Number(
+                                                                        inst.paid_amount ||
+                                                                            0,
+                                                                    ),
                                                                 )}
-                                                            </span>
-                                                        {/if}
+                                                            {/if}
+                                                        </span>
                                                     </div>
                                                 </div>
                                                 <div class="inst-right">
-                                                    <span class="inst-amount">
+                                                    <span
+                                                        class="inst-amount {!isPending
+                                                            ? 'text-success'
+                                                            : ''}"
+                                                    >
                                                         {formatCurrency(
                                                             Number(
                                                                 inst.balance ||
@@ -680,34 +788,48 @@
                                                             ),
                                                         )}
                                                     </span>
-                                                    <span class="inst-badge"
-                                                        >Pendiente</span
-                                                    >
+                                                    {#if status === "pagada"}
+                                                        <span
+                                                            class="inst-badge inst-badge-paid"
+                                                            >Pagada</span
+                                                        >
+                                                    {:else if status === "parcial"}
+                                                        <span
+                                                            class="inst-badge inst-badge-partial"
+                                                            >Parcial</span
+                                                        >
+                                                    {:else}
+                                                        <span class="inst-badge"
+                                                            >Pendiente</span
+                                                        >
+                                                    {/if}
                                                 </div>
                                             </button>
                                         {/each}
                                     </div>
 
-                                    {#if selectedInstallmentId}
+                                    <!-- Resumen de selección -->
+                                    <div
+                                        class="selected-summary mt-3 p-3 rounded-3"
+                                    >
                                         <div
-                                            class="selected-summary mt-3 p-3 rounded-3"
+                                            class="d-flex justify-content-between align-items-center"
                                         >
-                                            <div
-                                                class="d-flex justify-content-between align-items-center"
+                                            <span class="fw-bold text-dark">
+                                                {selectedInstallmentIds.size ===
+                                                0
+                                                    ? "Ninguna cuota seleccionada"
+                                                    : `${selectedInstallmentIds.size} cuota${selectedInstallmentIds.size > 1 ? "s" : ""} seleccionada${selectedInstallmentIds.size > 1 ? "s" : ""}`}
+                                            </span>
+                                            <span
+                                                class="price-total fw-bold text-primary"
                                             >
-                                                <span class="fw-bold text-dark"
-                                                    >Total a Pagar:</span
-                                                >
-                                                <span
-                                                    class="price-total fw-bold text-primary"
-                                                >
-                                                    {formatCurrency(
-                                                        selectedInstallmentAmount,
-                                                    )}
-                                                </span>
-                                            </div>
+                                                {formatCurrency(
+                                                    selectedInstallmentAmount,
+                                                )}
+                                            </span>
                                         </div>
-                                    {/if}
+                                    </div>
                                 {/if}
                             </div>
 
@@ -1152,6 +1274,8 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
+        max-height: 400px;
+        overflow-y: auto;
     }
 
     .installment-item {
@@ -1168,7 +1292,7 @@
         text-align: left;
     }
 
-    .installment-item:hover {
+    .installment-item:hover:not(:disabled) {
         border-color: #4e73df;
         background: #f8fafc;
     }
@@ -1176,6 +1300,16 @@
     .installment-item.selected {
         border-color: #4e73df;
         background: #eff3ff;
+    }
+
+    .installment-item.is-paid {
+        opacity: 0.6;
+        cursor: not-allowed;
+        background: #f8fafccc;
+    }
+
+    .installment-item:disabled {
+        cursor: not-allowed;
     }
 
     .inst-left {
@@ -1195,9 +1329,9 @@
         font-size: 0.88rem;
     }
 
-    .inst-due {
+    .inst-details {
         display: block;
-        font-size: 0.78rem;
+        font-size: 0.75rem;
     }
 
     .inst-right {
@@ -1213,6 +1347,10 @@
         font-size: 1rem;
     }
 
+    .inst-amount.text-success {
+        color: #1cc88a !important;
+    }
+
     .inst-badge {
         display: inline-block;
         background: #fef3c7;
@@ -1223,9 +1361,44 @@
         font-weight: 600;
     }
 
+    .inst-badge-paid {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .inst-badge-partial {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
     .selected-summary {
         background: #eff3ff;
         border: 1px solid #c7d2fe;
+    }
+
+    /* Select/Deselect buttons */
+    .btn-select-all,
+    .btn-deselect-all {
+        background: transparent;
+        border: 1px solid #cbd5e1;
+        color: #475569;
+        padding: 4px 12px;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-select-all:hover {
+        background: #4e73df;
+        color: white;
+        border-color: #4e73df;
+    }
+
+    .btn-deselect-all:hover {
+        background: #e2e8f0;
+        color: #1e293b;
     }
 
     /* Voucher Box */

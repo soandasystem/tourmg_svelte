@@ -9,30 +9,233 @@
     import dayjs from "dayjs";
     import api from "../../lib/apis.js";
     import Swal from "sweetalert2";
+    import { getMonthName } from "../../lib/utils.js";
 
     let canvas;
     let signaturePad;
     let isAccepted = false;
     let isLoading = false;
+    let localContratoUrl = "";
+    let sessionId = "";
 
     const userData = secureStorage.getItem("_us_") || {};
     const schemaName = userData.schema || "";
     const author = userData.username || "";
     const currentCompanyId = userData.company || 0;
+    const saleId = userData.sale || 0;
 
-    // Obtener la URL del contrato desde el store
     $: cursoId = $openingStore.user_curso_id;
-    $: rawContratoUrl = $openingStore.user_contrato || "";
-    $: contratoUrl = rawContratoUrl && rawContratoUrl !== "S"
-        ? (rawContratoUrl.startsWith('http')
-            ? rawContratoUrl
-            : `${import.meta.env.VITE_RENDER || "https://tourmg-go.onrender.com"}${rawContratoUrl.startsWith('/') ? '' : '/'}${rawContratoUrl}`)
-        : "";
     $: idcl = $tenantStore || "demo";
 
+    const getInitialForm = () => ({
+        vtaDia: "",
+        vtaMes: "",
+        vtaAgno: "",
+        rute: "",
+        rsocial: "",
+        nfantasia: "",
+        rlegal: "",
+        nlegal: "",
+        edireccion: "",
+        colegio: "",
+        comuna: "",
+        idcurso: "",
+        programa: "",
+        reserva: "",
+        nombreapod: "",
+        nombrealumno: "",
+        rutapod: "",
+        correoapod: "",
+        fonoapod: "",
+        observacion: "",
+        vprograma: 0,
+        tc: 0,
+        liberados: 0,
+        fsalida: "",
+        fsalidames: "",
+        fsalidaaño: "",
+        fsalidadia: "",
+        fpago: "",
+        type_sale: "",
+        template_filename: "",
+    });
+
+    let contratoForm = getInitialForm();
+
+    /** @type {any[]} */
+    let sales = [];
+    /** @type {any[]} */
+    let program = [];
+    /** @type {any[]} */
+    let colegio = [];
+    /** @type {any[]} */
+    let communes = [];
+    /** @type {any[]} */
+    let compañia = [];
+    /** @type {any} */
+    let cursoData = {};
+
+    async function fetchData() {
+        try {
+            const currentSaleId = userData.sale || 0;
+            const companyConsulta = userData.company || 0;
+            const currentCursoId = cursoId || userData.id || 0;
+
+            const [ventaRes, cursoRes, companyRes] = await Promise.all([
+                api.getData("sale", "", "", currentSaleId, schemaName),
+                api.getData("curso", "", "", currentCursoId, schemaName),
+                api.getData("company", "", "", companyConsulta, "global"),
+            ]);
+
+            if (companyRes.status === "success" && companyRes.data) {
+                const comp = Array.isArray(companyRes.data)
+                    ? companyRes.data[0]
+                    : companyRes.data;
+                compañia = comp ? [comp] : [];
+            }
+
+            if (cursoRes.status === "success" && cursoRes.data) {
+                cursoData = Array.isArray(cursoRes.data)
+                    ? cursoRes.data[0]
+                    : cursoRes.data;
+            }
+
+            if (ventaRes.status === "success" && ventaRes.data) {
+                const venta = ventaRes.data;
+                sales = [venta];
+
+                const programId = venta.program_id || "";
+                const establecimientoId = venta.establecimiento_id || "";
+
+                const [programacRes, schoolRes] = await Promise.all([
+                    api.getData("programs", "", "", programId, schemaName),
+                    api.getData(
+                        "colegio",
+                        "",
+                        "",
+                        establecimientoId,
+                        schemaName,
+                    ),
+                ]);
+
+                if (programacRes.status === "success" && programacRes.data) {
+                    program = [programacRes.data];
+                }
+
+                if (schoolRes.status === "success" && schoolRes.data) {
+                    const school = schoolRes.data;
+                    colegio = [school];
+
+                    const comunaId = school.comuna_id || "";
+                    if (comunaId) {
+                        const communaRes = await api.getData(
+                            "comunas",
+                            "",
+                            "",
+                            comunaId,
+                            "global",
+                        );
+                        if (
+                            communaRes.status === "success" &&
+                            communaRes.data
+                        ) {
+                            communes = [communaRes.data];
+                        }
+                    }
+                }
+
+                // --------- Mapeo de datos para el contrato ---------
+                const comp = compañia[0] || {};
+                const schoolObj = colegio[0] || {};
+                const communaObj = communes[0] || {};
+                const progObj = program[0] || {};
+
+                const vtaDate = dayjs(venta.fecha);
+                const vtaDia = vtaDate.format("DD");
+                const vtaMes = getMonthName(vtaDate.month() + 1);
+                const vtaAgno = vtaDate.format("YYYY");
+
+                const fsalidaDate = dayjs(venta.fechasalida);
+                const fsalidadia = parseInt(fsalidaDate.format("D"), 10);
+                const fsalidames = getMonthName(fsalidaDate.month() + 1);
+                const fsalidaaño = fsalidaDate.format("YYYY");
+                let fsalidaText = "";
+                if (fsalidadia <= 15) {
+                    fsalidaText = `la primera quincena de ${fsalidames} ${fsalidaaño}`;
+                } else {
+                    fsalidaText = `la segunda quincena de ${fsalidames} ${fsalidaaño}`;
+                }
+
+                const type_sale = venta.type_sale || "";
+                let template_filename = "";
+                if (type_sale === "GE") {
+                    template_filename = `contrato_ge_${comp.identificador || ""}.docx`;
+                } else {
+                    template_filename = `contrato_vg_${comp.identificador || ""}.docx`;
+                }
+                const vprogramaVal = Math.round(
+                    Number(venta.vprograma || 0) *
+                        Number(venta.tipocambio || 1),
+                );
+
+                contratoForm = {
+                    ...contratoForm,
+                    vtaDia,
+                    vtaMes,
+                    vtaAgno,
+                    rute: comp.rut || "",
+                    rsocial: comp.razonsocial || "",
+                    nfantasia: comp.nomfantasia || "",
+                    rlegal: comp.rutreplegal || "",
+                    nlegal: comp.nomreplegal || "",
+                    edireccion: comp.direccion || "",
+                    colegio: schoolObj.nombre || "",
+                    comuna: communaObj.description || "",
+                    idcurso: `${venta.curso}/${venta.idcurso}`,
+                    programa: progObj.name || "",
+                    reserva: String(progObj.reserva) || "",
+                    nombreapod: cursoData.nombreapod || "",
+                    nombrealumno: cursoData.nombrealumno || "",
+                    rutapod: cursoData.rutapod || "",
+                    correoapod: cursoData.correo || "",
+                    fonoapod: cursoData.phone || "",
+                    observacion: venta.obs || "",
+                    vprograma: String(vprogramaVal),
+                    tc: String(venta.tipocambio) || 0,
+                    liberados: String(venta.liberados) || 0,
+                    fsalida: fsalidaText,
+                    fsalidames,
+                    fsalidaaño,
+                    fsalidadia: fsalidadia.toString(),
+                    fpago: venta.fecha_ultpag || "",
+                    type_sale: type_sale,
+                    template_filename: template_filename,
+                };
+
+                // Enviar form al backend para generar el contrato
+                const contratoRes = await api.setData(
+                    "contrato",
+                    contratoForm,
+                    "",
+                    "",
+                    schemaName,
+                );
+                if (contratoRes.status === "success") {
+                    const contract = Array.isArray(contratoRes.data)
+                        ? contratoRes.data[0]
+                        : contratoRes.data;
+                    sessionId = contract.session_id || "";
+                    localContratoUrl = `${contract.data.docx_url}`;
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        }
+    }
+
     onMount(() => {
-        // Añadir el listener para resize si el componente se monta
         window.addEventListener("resize", resizeCanvas);
+        fetchData();
     });
 
     onDestroy(() => {
@@ -61,7 +264,6 @@
 
     function resizeCanvas() {
         if (!canvas) return;
-        // La relación de píxeles del dispositivo puede hacer que las firmas se vean borrosas o tengan coordenadas incorrectas si no se maneja
         const ratio = Math.max(window.devicePixelRatio || 1, 1);
         canvas.width = canvas.offsetWidth * ratio;
         canvas.height = canvas.offsetHeight * ratio;
@@ -102,7 +304,7 @@
 
         try {
             isLoading = true;
-            
+
             const userData = secureStorage.getItem("_us_") || {};
 
             const payload = {
@@ -120,9 +322,6 @@
                 schemaName,
             );
             if (res.status === "success") {
-                // En PHP se llamaba a $this->contratotopdf. Si tienes un endpoint para eso en Go, puedes llamarlo aquí:
-                // await api.setData("sale/contratotopdf", { signature64: signature64, sale_id: $openingStore.sale_id }, "", "", "global");
-
                 // Actualizamos el estado para indicar que el contrato está firmado
                 secureStorage.setItem("paso", "3"); // Equivalente a Session::set('paso','2') para avanzar al paso de pagos
                 secureStorage.setItem("user_contrato", "S");
@@ -139,7 +338,7 @@
                     "Contrato firmado y aceptado correctamente.",
                     "success",
                 ).then(() => {
-                    navigate(`/${idcl}/opening`);
+                    navigate(`/opening`);
                 });
             } else {
                 Swal.fire(
@@ -181,9 +380,9 @@
             <h5 class="mb-4 text-muted">Revise el contrato antes de aceptar</h5>
 
             <div class="iframe-container mb-4">
-                {#if contratoUrl}
+                {#if localContratoUrl}
                     <iframe
-                        src={`https://docs.google.com/gview?url=${encodeURIComponent(contratoUrl)}&embedded=true`}
+                        src={`https://docs.google.com/gview?url=${encodeURIComponent(localContratoUrl)}&embedded=true`}
                         title="Documento Contrato"
                         frameborder="0"
                     >
