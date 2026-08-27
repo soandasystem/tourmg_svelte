@@ -307,18 +307,25 @@
 
             const userData = secureStorage.getItem("_us_") || {};
 
-            const payload = {
-                acepta_contrato: 1,
-                signaturepng: signature64,
-                autor: userData.name || "Apoderado",
+            const cursoObj = cursoData[0] || {};
+            const saleIdStr = cursoObj.sale_id || "";
+            const rutAlumnoStr = cursoObj.rutalumno
+                ? cursoObj.rutalumno.replace(/[\.\-]/g, "")
+                : "";
+
+            const payloadFirma = {
+                session_id: sessionId,
+                docx_url: localContratoUrl,
+                firma_base64: signature64,
+                file_name_firma: `contratoge_${saleIdStr}_${rutAlumnoStr}`,
             };
 
-            // Actualizar la tabla curso usando el user_curso_id
-            const res = await api.updateData(
-                "curso",
-                payload,
+            // Enviar firma al endpoint
+            const res = await api.setData(
+                "contrato/firma",
+                payloadFirma,
                 "",
-                cursoId,
+                "",
                 schemaName,
             );
             if (res.status === "success") {

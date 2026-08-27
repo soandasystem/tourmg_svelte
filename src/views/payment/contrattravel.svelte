@@ -332,7 +332,7 @@
                 session_id: sessionId,
                 docx_url: localContratoUrl,
                 firma_base64: signature64,
-                file_name_firma: `contratoge_${saleIdStr}_${rutAlumnoStr}.pdf`,
+                file_name_firma: `contratoge_${saleIdStr}_${rutAlumnoStr}`,
             };
 
             // Enviar firma al endpoint
