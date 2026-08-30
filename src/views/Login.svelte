@@ -59,6 +59,7 @@
         if (respComp.status === "success" && respComp.data.length > 0) {
             const company = respComp.data[0];
             code_company = company.identificador || "";
+            secureStorage.setItem("codecompany", company.identificador);
         }
 
         if (code_company) {
