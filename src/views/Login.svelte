@@ -122,7 +122,7 @@
             let login_status = "invalid";
             let user_data = null;
             let redirect_url = "/admin/index";
-
+            let authToken = "";
             // Si es Login con Usuario y Clave
             if (username && password) {
                 // El PHP usa MD5 con una HASH_KEY.
@@ -131,6 +131,29 @@
                     password,
                     HASH_KEY,
                 ).toString();
+                //Busca el token para este tipo de registro
+                const payload = {
+                    login_type: "user",
+                    username: username,
+                    password: hashedPassword,
+                };
+                const tokenResponse = await api.setData(
+                    "login",
+                    payload,
+                    "",
+                    "",
+                    schema_name,
+                );
+                if (
+                    tokenResponse.status === "success" &&
+                    tokenResponse.data?.token
+                ) {
+                    authToken = tokenResponse.data.token;
+                    await secureStorage.setItem("_tk_", authToken);
+                } else {
+                    authToken = "";
+                }
+
                 const queryParams = `active=1&username=${username}&password=${hashedPassword}`;
                 const resp = await api.getData(
                     "users",
@@ -139,7 +162,11 @@
                     "",
                     schema_name,
                 );
-                if (resp.status === "success" && resp.data.length > 0) {
+                if (
+                    authToken &&
+                    resp.status === "success" &&
+                    resp.data.length > 0
+                ) {
                     const user = resp.data[0];
                     user_data = {
                         id: user.id,
@@ -155,6 +182,7 @@
                                 ? JSON.parse(user.rol.permissions)
                                 : user.rol?.permissions || {},
                     };
+
                     login_status = "success";
                 } else {
                     // Buscar en "curso" (Apoderados)
@@ -165,7 +193,28 @@
                     const apoderadoPass = cleanRut.substring(0, 4);
                     const hashedApoPass =
                         CryptoJS.MD5(apoderadoPass).toString();
-
+                    //Busca el token para este tipo de registro
+                    const payload = {
+                        login_type: "course",
+                        rutapod: username.toUpperCase(),
+                        password: hashedApoPass,
+                    };
+                    const tokenResponse = await api.setData(
+                        "login",
+                        payload,
+                        "",
+                        "",
+                        schema_name,
+                    );
+                    if (
+                        tokenResponse.status === "success" &&
+                        tokenResponse.data?.token
+                    ) {
+                        authToken = tokenResponse.data.token;
+                        await secureStorage.setItem("_tk_", authToken);
+                    } else {
+                        authToken = "";
+                    }
                     const apoQueryParams = `rutapod=${username.toUpperCase()}&password=${hashedApoPass}&company_id=${company_id}`;
                     const apoResp = await api.getData(
                         "curso",
@@ -176,6 +225,7 @@
                     );
 
                     if (
+                        authToken &&
                         apoResp.status === "success" &&
                         apoResp.data.length > 0
                     ) {
@@ -190,6 +240,7 @@
                             sale: course.sale_id,
                             userrut: course.rutapod,
                         };
+
                         login_status = "success";
                         redirect_url = "/payment";
                     } else {
@@ -200,6 +251,28 @@
             }
             // Si es Login con Código de Acceso
             else if (accesscode) {
+                //Busca el token para este tipo de registro
+                const payload = {
+                    login_type: "access_code",
+                    access_code: accesscode,
+                };
+                const tokenResponse = await api.setData(
+                    "login",
+                    payload,
+                    "",
+                    "",
+                    schema_name,
+                );
+                if (
+                    tokenResponse.status === "success" &&
+                    tokenResponse.data?.token
+                ) {
+                    authToken = tokenResponse.data.token;
+                    await secureStorage.setItem("_tk_", authToken);
+                } else {
+                    authToken = "";
+                }
+                //Buscar por usuario
                 const queryParams = `accesscode=${accesscode}&activo=1`;
                 const resp = await api.getData(
                     "sale",
@@ -209,7 +282,11 @@
                     schema_name,
                 );
 
-                if (resp.status === "success" && resp.data.length > 0) {
+                if (
+                    authToken &&
+                    resp.status === "success" &&
+                    resp.data.length > 0
+                ) {
                     const sale = resp.data[0];
                     user_data = {
                         id: "0",

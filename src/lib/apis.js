@@ -37,20 +37,21 @@ export const ROOT_URL = import.meta.env.DEV ? "" : `${(import.meta.env.VITE_REND
 class RenderRequest {
     /**
      * Obtiene datos desde el servicio especificado.
-     * Reemplaza a getData($service, $body = "", $urlencode = "", $id = "", $company = "global")
+     * Reemplaza a getData($service, $body = "", $urlencode = "", $id = "", $token= "global")
      */
-    async getData(service, body = "", urlencode = "", id = "", schema = "global", company = "") {
+    async getData(service, body = "", urlencode = "", id = "", schema = "global", token = "") {
         let endpoint = `${RENDER_ENDPOINT}/${service}`;
         if (id) endpoint += `/${id}`;
         if (urlencode) endpoint += `?${urlencode}`;
 
-        const token = secureStorage.getItem('_tk_');
+        const access_token = secureStorage.getItem('_tk_');
 
         try {
             const response = await axios.get(endpoint, {
                 headers: {
                     'Accept': 'application/json',
-                    'X-Tenant-Schema': schema
+                    'X-Tenant-Schema': schema,
+                    'Authorization': 'Bearer ' + access_token
                 },
                 validateStatus: () => true // Capturar respuestas de error para procesar el JSON
             });
@@ -76,20 +77,21 @@ class RenderRequest {
 
     /**
      * Envía nuevos datos al servicio (POST).
-     * Reemplaza a setData($service, $body = "", $urlencode = "", $id = "", $company = "global")
+     * Reemplaza a setData($service, $body = "", $urlencode = "", $id = "", $token= "global")
      */
-    async setData(service, body = null, urlencode = "", id = "", schema = "global", company = "") {
+    async setData(service, body = null, urlencode = "", id = "", schema = "global", token = "") {
         let endpoint = `${RENDER_ENDPOINT}/${service}`;
         if (id) endpoint += `/${id}`;
         if (urlencode) endpoint += `?${urlencode}`;
 
-        const token = secureStorage.getItem('_tk_');
+        const access_token = secureStorage.getItem('_tk_');
 
         try {
             const response = await axios.post(endpoint, body, {
                 headers: {
                     'Accept': 'application/json',
-                    'X-Tenant-Schema': schema
+                    'X-Tenant-Schema': schema,
+                    'Authorization': 'Bearer ' + access_token
                 },
                 validateStatus: (status) => status >= 200 && status < 300
             });
@@ -104,20 +106,21 @@ class RenderRequest {
 
     /**
      * Actualiza datos existentes (PATCH).
-     * Reemplaza a updateData($service, $body = "", $urlencode = "", $id = "", $company = "global")
+     * Reemplaza a updateData($service, $body = "", $urlencode = "", $id = "", $token= "global")
      */
-    async updateData(service, body = null, urlencode = "", id = "", schema = "global", company = "") {
+    async updateData(service, body = null, urlencode = "", id = "", schema = "global", token = "") {
         let endpoint = `${RENDER_ENDPOINT}/${service}`;
         if (id) endpoint += `/${id}`;
         if (urlencode) endpoint += `?${urlencode}`;
 
-        const token = secureStorage.getItem('_tk_');
+        const access_token = secureStorage.getItem('_tk_');
 
         try {
             const response = await axios.patch(endpoint, body, {
                 headers: {
                     'Accept': 'application/json',
-                    'X-Tenant-Schema': schema
+                    'X-Tenant-Schema': schema,
+                    'Authorization': 'Bearer ' + access_token
                 },
                 validateStatus: (status) => status >= 200 && status < 300
             });
@@ -132,20 +135,21 @@ class RenderRequest {
 
     /**
      * Elimina datos (DELETE).
-     * Reemplaza a deleteData($service, $body = "", $urlencode = "", $id = "", $company = "global")
+     * Reemplaza a deleteData($service, $body = "", $urlencode = "", $id = "", $token= "global")
      */
-    async deleteData(service, body = "", urlencode = "", id = "", schema = "global", company = "") {
+    async deleteData(service, body = "", urlencode = "", id = "", schema = "global", token = "") {
         let endpoint = `${RENDER_ENDPOINT}/${service}`;
         if (id) endpoint += `/${id}`;
         if (urlencode) endpoint += `?${urlencode}`;
 
-        const token = secureStorage.getItem('_tk_');
+        const access_token = secureStorage.getItem('_tk_');
 
         try {
             const response = await axios.delete(endpoint, {
                 headers: {
                     'Accept': 'application/json',
-                    'X-Tenant-Schema': schema
+                    'X-Tenant-Schema': schema,
+                    'Authorization': 'Bearer ' + access_token
                 },
                 validateStatus: () => true
             });
