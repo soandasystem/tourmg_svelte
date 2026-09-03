@@ -8,6 +8,7 @@
     import { tenantStore } from "../stores/tenant";
     import { get } from "svelte/store";
     import { clearOpeningStore, fetchSaleInfo } from "../stores/openingStore";
+    import Swal from "sweetalert2";
 
     // Props
     export let idcl = "";
@@ -29,6 +30,8 @@
     let newPassword = "";
     let confirmPassword = "";
     let userId = null;
+    let resetLoginType = ""; // "user" o "course"
+    let companySchema = "global";
 
     let errorMessage = "";
     let loading = false;
@@ -59,6 +62,7 @@
         if (respComp.status === "success" && respComp.data.length > 0) {
             const company = respComp.data[0];
             code_company = company.identificador || "";
+            companySchema = company.schema_name || "global";
         }
 
         if (code_company) {
@@ -78,7 +82,7 @@
     });
 
     function handleImageError() {
-        console.warn("Logo not found, using fallback");
+        console.warn("Logotipo no encontrado, se utilizará una alternativa");
         imageError = true;
         // Fallback a una imagen por defecto si existe o un placeholder
         companyImage = "/vite.svg";
@@ -177,6 +181,7 @@
                         schema: schema_name,
                         plancode: plan,
                         rol_id: user.roles_id,
+                        codecompany: code_company,
                         permissions:
                             typeof user.rol?.permissions === "string"
                                 ? JSON.parse(user.rol.permissions)
@@ -239,6 +244,7 @@
                             plancode: plan,
                             sale: course.sale_id,
                             userrut: course.rutapod,
+                            codecompany: code_company,
                         };
 
                         login_status = "success";
@@ -297,6 +303,7 @@
                         plancode: plan,
                         sale: sale.id,
                         access_code: sale.accesscode,
+                        codecompany: code_company,
                     };
 
                     // Obtener los detalles de la venta de forma asíncrona
@@ -342,6 +349,14 @@
         password = "";
         accesscode = "";
         errorMessage = "";
+        forgotUsername = "";
+        forgotEmail = "";
+        generatedCode = "";
+        enteredCode = "";
+        newPassword = "";
+        confirmPassword = "";
+        userId = null;
+        resetLoginType = "";
     }
 
     // Acción para manejar el foco de forma accesible (reemplaza autofocus)
@@ -351,80 +366,199 @@
 
     // Forgot password: request code
     async function handleForgotUser() {
+        if (!forgotUsername || !forgotUsername.trim()) {
+            errorMessage = "Por favor ingresa tu usuario o rut.";
+            return;
+        }
+
         errorMessage = "";
         loading = true;
         try {
-            // Check user in 'users' table
-            const userResp = await api.getData(
-                "users",
+            const schema = companySchema || "global";
+            const cleanUser = forgotUsername.trim();
+
+            // 1. Validar en tabla 'users' (Usuarios del sistema)
+            const userResp = await api.setData(
+                "restore",
+                {
+                    login_type: "user",
+                    username: cleanUser,
+                },
                 "",
-                `username=${forgotUsername}`,
+                "",
+                schema,
             );
-            if (userResp.status === "success" && userResp.data.length > 0) {
-                const user = userResp.data[0];
-                userId = user.id;
-                forgotEmail = user.email;
+            console.log("userResp restore:", userResp);
+
+            if (userResp.status === "success" && userResp.data?.id) {
+                userId = Number(userResp.data.id);
+                forgotEmail = userResp.data.email || "";
+                resetLoginType = userResp.data.type || "user";
+                if (userResp.data.token) {
+                    await secureStorage.setItem("_tk_", userResp.data.token);
+                }
             } else {
-                // Check in 'curso' table
-                const cursoResp = await api.getData(
-                    "curso",
+                // 2. Si no es usuario, validar en tabla 'curso' (Apoderados por rutapod)
+                const cursoResp = await api.setData(
+                    "restore",
+                    {
+                        login_type: "course",
+                        rutapod: cleanUser.toUpperCase(),
+                    },
                     "",
-                    `username=${forgotUsername}`,
+                    "",
+                    schema,
                 );
-                if (
-                    cursoResp.status === "success" &&
-                    cursoResp.data.length > 0
-                ) {
-                    const curso = cursoResp.data[0];
-                    userId = curso.id;
-                    forgotEmail = curso.email;
+                console.log("cursoResp restore:", cursoResp);
+
+                if (cursoResp.status === "success" && cursoResp.data?.id) {
+                    userId = Number(cursoResp.data.id);
+                    forgotEmail = cursoResp.data.email || "";
+                    resetLoginType = cursoResp.data.type || "course";
+                    if (cursoResp.data.token) {
+                        await secureStorage.setItem(
+                            "_tk_",
+                            cursoResp.data.token,
+                        );
+                    }
                 } else {
-                    errorMessage = "Usuario no encontrado.";
+                    errorMessage = "Usuario o rut de apoderado no encontrado.";
                     loading = false;
                     return;
                 }
             }
-            // Generate 6‑digit code
+
+            // 3. Generar código de 6 dígitos y guardarlo en secureStorage
             generatedCode = String(Math.floor(100000 + Math.random() * 900000));
-            // Send email (placeholder endpoint)
-            await api.postData("send-code", {
-                email: forgotEmail,
-                code: generatedCode,
+            await secureStorage.setItem("_reset_code_", generatedCode);
+
+            // 4. Enviar código por correo
+            console.log("forgotEmail", forgotEmail);
+
+            //           try {
+            const emailResp = await api.setData(
+                "send-code",
+                {
+                    email: forgotEmail,
+                    code: generatedCode,
+                },
+                "",
+                "",
+                schema,
+            );
+            console.log("emailResp restore:", emailResp);
+            /*    
+            } catch (errMail) {
+                console.warn("send-code no configurado o falló:", errMail);
+            }
+*/
+            const maskedEmail =
+                forgotEmail && forgotEmail.includes("@")
+                    ? forgotEmail.replace(/(.{2})(.*)(@.*)/, "$1****$3")
+                    : "tu correo registrado";
+
+            Swal.fire({
+                icon: "info",
+                title: "Código enviado",
+                text: `Se ha enviado un código de 6 dígitos a ${maskedEmail}.`,
+                confirmButtonColor: "#0d6efd",
             });
+
             currentStep = "forgotCode";
         } catch (e) {
             console.error(e);
-            errorMessage = "Error al solicitar el código.";
+            errorMessage = "Error al solicitar el código de recuperación.";
         } finally {
             loading = false;
         }
     }
 
     // Verify code entered by user
-    function handleVerifyCode() {
-        if (enteredCode === generatedCode) {
+    async function handleVerifyCode() {
+        if (!enteredCode || !enteredCode.trim()) {
+            errorMessage = "Ingresa el código de 6 dígitos recibido.";
+            return;
+        }
+
+        const storedCode = await secureStorage.getItem("_reset_code_");
+        if (storedCode && enteredCode.trim() === String(storedCode).trim()) {
+            // Eliminar de secureStorage luego de la comparación exitosa
+            await secureStorage.removeItem("_reset_code_");
             currentStep = "forgotReset";
             errorMessage = "";
         } else {
-            errorMessage = "Código incorrecto.";
+            errorMessage = "El código ingresado es incorrecto o ha expirado.";
         }
     }
 
-    // Reset password
+    // Reset password: guardar según corresponda ('users' o 'course')
     async function handleResetPassword() {
+        if (!newPassword) {
+            errorMessage = "Ingresa la nueva contraseña.";
+            return;
+        }
+        if (newPassword.length < 4) {
+            errorMessage = "La contraseña debe tener al menos 4 caracteres.";
+            return;
+        }
         if (newPassword !== confirmPassword) {
             errorMessage = "Las contraseñas no coinciden.";
             return;
         }
+
         loading = true;
+        errorMessage = "";
         try {
-            await api.postData("reset-password", {
-                id: userId,
-                password: newPassword,
-            });
-            // Return to login
-            resetSteps();
-            alert("Contraseña actualizada. Por favor, inicia sesión.");
+            const schema = companySchema || "global";
+            let updateResult = null;
+
+            if (resetLoginType === "user") {
+                // Usuarios del sistema usan HMAC-MD5 con HASH_KEY
+                const hashedPassword = CryptoJS.HmacMD5(
+                    newPassword,
+                    HASH_KEY,
+                ).toString();
+                updateResult = await api.updateData(
+                    "users",
+                    { password: hashedPassword },
+                    "",
+                    userId,
+                    schema,
+                );
+            } else if (resetLoginType === "course") {
+                // Apoderados usan MD5 estándar
+                const hashedApoPass = CryptoJS.MD5(newPassword).toString();
+                updateResult = await api.updateData(
+                    "curso",
+                    { password: hashedApoPass },
+                    "",
+                    userId,
+                    schema,
+                );
+            } else {
+                errorMessage = "No se pudo determinar el tipo de cuenta.";
+                loading = false;
+                return;
+            }
+
+            if (updateResult && updateResult.status === "success") {
+                // Limpiar tokens temporales de recuperación
+                await secureStorage.removeItem("_tk_");
+                await secureStorage.removeItem("_reset_code_");
+
+                resetSteps();
+
+                await Swal.fire({
+                    icon: "success",
+                    title: "¡Contraseña actualizada!",
+                    text: "Tu contraseña se ha cambiado exitosamente. Por favor inicia sesión.",
+                    confirmButtonColor: "#0d6efd",
+                });
+            } else {
+                errorMessage =
+                    updateResult?.message ||
+                    "No se pudo actualizar la contraseña. Inténtalo nuevamente.";
+            }
         } catch (e) {
             console.error(e);
             errorMessage = "Error al actualizar la contraseña.";
@@ -470,7 +604,13 @@
     <!-- Columna derecha: Login -->
     <div class="right-panel">
         <div class="form-wrapper">
-            <h1 class="form-header">Bienvenido</h1>
+            <h1 class="form-header">
+                {#if currentStep.startsWith("forgot")}
+                    Recuperar Clave
+                {:else}
+                    Bienvenido
+                {/if}
+            </h1>
 
             {#if errorMessage}
                 <div class="alert alert-danger text-center" role="alert">
@@ -541,9 +681,22 @@
                 <form on:submit|preventDefault={handleLogin}>
                     <div id="passwordCard" class="card fade-in">
                         <div class="mb-3 text-start">
-                            <label for="password" class="form-label"
-                                >Clave</label
+                            <div
+                                class="d-flex justify-content-between align-items-center mb-1"
                             >
+                                <label for="password" class="form-label mb-0"
+                                    >Clave</label
+                                >
+                                <button
+                                    type="button"
+                                    class="btn btn-link enlace-gris p-0 text-decoration-none"
+                                    style="font-size: 0.85rem;"
+                                    on:click={() =>
+                                        (currentStep = "forgotUser")}
+                                >
+                                    ¿Olvidaste tu clave?
+                                </button>
+                            </div>
                             <div class="input-group">
                                 <span class="input-group-text"
                                     ><i class="fa fa-lock"></i></span
@@ -581,14 +734,6 @@
                                 class="btn btn-link enlace-gris"
                                 on:click={() => (currentStep = "user")}
                                 >Volver</button
-                            >
-                        </div>
-                        <div class="enlace-gris text-center mt-3">
-                            <button
-                                type="button"
-                                class="btn btn-link enlace-gris"
-                                on:click={() => (currentStep = "forgotUser")}
-                                >¿Olvidaste tu clave de acceso?</button
                             >
                         </div>
                     </div>
@@ -644,115 +789,151 @@
                     </div>
                 </form>
             {/if}
+
+            <!-- Pasos de recuperación de contraseña dentro del formulario -->
+            {#if currentStep === "forgotUser"}
+                <form on:submit|preventDefault={handleForgotUser}>
+                    <div class="card fade-in">
+                        <div class="mb-3 text-start">
+                            <label class="form-label" for="forgotUser"
+                                >Usuario o RUT de Apoderado</label
+                            >
+                            <div class="input-group">
+                                <span class="input-group-text"
+                                    ><i class="fa fa-user"></i></span
+                                >
+                                <input
+                                    id="forgotUser"
+                                    class="form-control"
+                                    placeholder="Ingresa tu usuario o rut"
+                                    bind:value={forgotUsername}
+                                    required
+                                    use:focus
+                                />
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button
+                                type="submit"
+                                class="btn btn-primary"
+                                disabled={loading}
+                            >
+                                {#if loading}<span
+                                        class="spinner-border spinner-border-sm"
+                                        role="status"
+                                        aria-hidden="true"
+                                    ></span> Enviando...{:else}Enviar código{/if}
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-link enlace-gris"
+                                on:click={resetSteps}>Volver</button
+                            >
+                        </div>
+                    </div>
+                </form>
+            {/if}
+
+            {#if currentStep === "forgotCode"}
+                <form on:submit|preventDefault={handleVerifyCode}>
+                    <div class="card fade-in">
+                        <div class="mb-3 text-start">
+                            <label class="form-label" for="forgotCode"
+                                >Código de verificación</label
+                            >
+                            <div class="input-group">
+                                <span class="input-group-text"
+                                    ><i class="bi bi-shield-check"></i></span
+                                >
+                                <input
+                                    id="forgotCode"
+                                    class="form-control"
+                                    placeholder="Ingresa el código de 6 dígitos"
+                                    bind:value={enteredCode}
+                                    required
+                                    use:focus
+                                />
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary"
+                                >Verificar</button
+                            >
+                            <button
+                                type="button"
+                                class="btn btn-link enlace-gris"
+                                on:click={resetSteps}>Volver</button
+                            >
+                        </div>
+                    </div>
+                </form>
+            {/if}
+
+            {#if currentStep === "forgotReset"}
+                <form on:submit|preventDefault={handleResetPassword}>
+                    <div class="card fade-in">
+                        <div class="mb-3 text-start">
+                            <label class="form-label" for="newPassword"
+                                >Nueva contraseña</label
+                            >
+                            <div class="input-group">
+                                <span class="input-group-text"
+                                    ><i class="fa fa-lock"></i></span
+                                >
+                                <input
+                                    type="password"
+                                    id="newPassword"
+                                    class="form-control"
+                                    bind:value={newPassword}
+                                    placeholder="Nueva contraseña"
+                                    required
+                                    use:focus
+                                />
+                            </div>
+                        </div>
+                        <div class="mb-3 text-start">
+                            <label class="form-label" for="confirmPassword"
+                                >Confirmar contraseña</label
+                            >
+                            <div class="input-group">
+                                <span class="input-group-text"
+                                    ><i class="fa fa-lock"></i></span
+                                >
+                                <input
+                                    type="password"
+                                    id="confirmPassword"
+                                    class="form-control"
+                                    bind:value={confirmPassword}
+                                    placeholder="Confirmar contraseña"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button
+                                type="submit"
+                                class="btn btn-success"
+                                disabled={loading}
+                            >
+                                {#if loading}<span
+                                        class="spinner-border spinner-border-sm"
+                                        role="status"
+                                        aria-hidden="true"
+                                    ></span> Actualizando...{:else}Cambiar
+                                    contraseña{/if}
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-link enlace-gris"
+                                on:click={resetSteps}>Volver</button
+                            >
+                        </div>
+                    </div>
+                </form>
+            {/if}
         </div>
     </div>
 </div>
-
-{#if currentStep === "forgotUser"}
-    <div class="card fade-in">
-        <div class="mb-3 text-start">
-            <label class="form-label" for="forgotUser">Usuario o Correo</label>
-            <input
-                class="form-control"
-                placeholder="Ingresa tu usuario o correo"
-                bind:value={forgotUsername}
-                required
-            />
-        </div>
-        <div class="d-grid gap-2">
-            <button
-                class="btn btn-primary"
-                on:click={handleForgotUser}
-                disabled={loading}
-            >
-                {#if loading}<span
-                        class="spinner-border spinner-border-sm"
-                        role="status"
-                        aria-hidden="true"
-                    ></span> Enviando...{:else}Enviar código{/if}
-            </button>
-            <button class="btn btn-link enlace-gris" on:click={resetSteps}
-                >Volver</button
-            >
-        </div>
-        {#if errorMessage}<div class="alert alert-danger text-center mt-2">
-                {errorMessage}
-            </div>{/if}
-    </div>
-{/if}
-
-{#if currentStep === "forgotCode"}
-    <div class="card fade-in">
-        <div class="mb-3 text-start">
-            <label class="form-label" for="forgotCode"
-                >Código de verificación</label
-            >
-            <input
-                class="form-control"
-                placeholder="Ingresa el código de 6 dígitos"
-                bind:value={enteredCode}
-                required
-            />
-        </div>
-        <div class="d-grid gap-2">
-            <button class="btn btn-primary" on:click={handleVerifyCode}
-                >Verificar</button
-            >
-            <button class="btn btn-link enlace-gris" on:click={resetSteps}
-                >Volver</button
-            >
-        </div>
-        {#if errorMessage}<div class="alert alert-danger text-center mt-2">
-                {errorMessage}
-            </div>{/if}
-    </div>
-{/if}
-
-{#if currentStep === "forgotReset"}
-    <div class="card fade-in">
-        <div class="mb-3 text-start">
-            <label class="form-label" for="newPassword">Nueva contraseña</label>
-            <input
-                type="password"
-                class="form-control"
-                bind:value={newPassword}
-                placeholder="Nueva contraseña"
-                required
-            />
-        </div>
-        <div class="mb-3 text-start">
-            <label class="form-label" for="confirmPassword"
-                >Confirmar contraseña</label
-            >
-            <input
-                type="password"
-                class="form-control"
-                bind:value={confirmPassword}
-                placeholder="Confirmar contraseña"
-                required
-            />
-        </div>
-        <div class="d-grid gap-2">
-            <button
-                class="btn btn-success"
-                on:click={handleResetPassword}
-                disabled={loading}
-            >
-                {#if loading}<span
-                        class="spinner-border spinner-border-sm"
-                        role="status"
-                        aria-hidden="true"
-                    ></span> Actualizando...{:else}Cambiar contraseña{/if}
-            </button>
-            <button class="btn btn-link enlace-gris" on:click={resetSteps}
-                >Volver</button
-            >
-        </div>
-        {#if errorMessage}<div class="alert alert-danger text-center mt-2">
-                {errorMessage}
-            </div>{/if}
-    </div>
-{/if}
 
 <style>
     /* Estilos globales para html/body */

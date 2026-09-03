@@ -3,15 +3,23 @@
     import { tenantStore } from "../stores/tenant";
     import { navigate } from "svelte-routing";
     import { ROOT_URL } from "../lib/apis";
+    import { secureStorage } from "../lib/secureStore";
+
+    const IMAGE_BASE = import.meta.env.VITE_FRURL || "http://localhost:5173";
+
+    const userData = secureStorage.getItem("_us_");
+    const codeCompany = userData.codecompany;
 
     $: idcl = $tenantStore;
     $: user = $authStore.user;
-    
-    // URL dinámica para el logo
-    $: logoUrl = idcl
-        ? `${ROOT_URL}/upload/company/image_company/login_logo_${idcl}.png`
-        : "";
 
+    // URL dinámica para el logo
+    let logoUrl = "";
+    console.log("userData", userData);
+    if (codeCompany) {
+        logoUrl = `${IMAGE_BASE}/login_logo_${codeCompany}.png`;
+    }
+    console.log("logoUrl", logoUrl);
     function handleLogout() {
         logout();
         navigate(`/login`);
@@ -25,10 +33,10 @@
                 <img src={logoUrl} alt="Company Logo" class="company-logo" />
             </div>
         {:else}
-             <div class="logo-placeholder">
+            <div class="logo-placeholder">
                 <i class="fa fa-ravelry"></i>
                 <span>TourManager</span>
-             </div>
+            </div>
         {/if}
     </div>
 
@@ -36,18 +44,23 @@
         {#if user}
             <div class="user-info">
                 <div class="user-details">
-                    <span class="user-name">{user.username || 'Usuario'}</span>
-                    <span class="user-role">{user.profile_name || 'Staff'}</span>
+                    <span class="user-name">{user.username || "Usuario"}</span>
+                    <span class="user-role">{user.profile_name || "Staff"}</span
+                    >
                 </div>
                 <div class="user-avatar">
-                   {user.username ? user.username[0].toUpperCase() : 'U'}
+                    {user.username ? user.username[0].toUpperCase() : "U"}
                 </div>
             </div>
         {/if}
-        
+
         <div class="divider"></div>
 
-        <button class="logout-btn" on:click={handleLogout} title="Cerrar Sesión">
+        <button
+            class="logout-btn"
+            on:click={handleLogout}
+            title="Cerrar Sesión"
+        >
             <span>Salir</span>
             <i class="fa fa-sign-out"></i>
         </button>
