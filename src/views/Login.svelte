@@ -378,12 +378,13 @@
             const cleanUser = forgotUsername.trim();
 
             // 1. Validar en tabla 'users' (Usuarios del sistema)
+            userPayload = {
+                login_type: "user",
+                username: cleanUser,
+            };
             const userResp = await api.setData(
                 "restore",
-                {
-                    login_type: "user",
-                    username: cleanUser,
-                },
+                userPayload,
                 "",
                 "",
                 schema,
@@ -399,12 +400,13 @@
                 }
             } else {
                 // 2. Si no es usuario, validar en tabla 'curso' (Apoderados por rutapod)
+                const cursoPayload = {
+                    login_type: "course",
+                    rutapod: cleanUser.toUpperCase(),
+                };
                 const cursoResp = await api.setData(
                     "restore",
-                    {
-                        login_type: "course",
-                        rutapod: cleanUser.toUpperCase(),
-                    },
+                    cursoPayload,
                     "",
                     "",
                     schema,
@@ -434,24 +436,39 @@
 
             // 4. Enviar código por correo
             console.log("forgotEmail", forgotEmail);
-
-            //           try {
-            const emailResp = await api.setData(
-                "send-code",
-                {
-                    email: forgotEmail,
-                    code: generatedCode,
-                },
-                "",
-                "",
-                schema,
-            );
-            console.log("emailResp restore:", emailResp);
-            /*    
+            const emailPayload = {
+                email: forgotEmail,
+                code: generatedCode,
+            };
+            try {
+                const emailResp = await api.setData(
+                    "send-code",
+                    emailPayload,
+                    "",
+                    "",
+                    schema,
+                );
+                console.log("emailResp restore:", emailResp);
             } catch (errMail) {
                 console.warn("send-code no configurado o falló:", errMail);
             }
-*/
+            try {
+                const codePaylaod = {
+                    code: generatedCode,
+                    email: forgotEmail,
+                };
+                const emailResp = await api.setData(
+                    "send-code",
+                    codePaylaod,
+                    "",
+                    "",
+                    schema,
+                );
+                console.log("emailResp restore:", emailResp);
+            } catch (errMail) {
+                console.warn("send-code no configurado o falló:", errMail);
+            }
+
             const maskedEmail =
                 forgotEmail && forgotEmail.includes("@")
                     ? forgotEmail.replace(/(.{2})(.*)(@.*)/, "$1****$3")
