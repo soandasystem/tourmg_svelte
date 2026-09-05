@@ -90,6 +90,7 @@ class RenderRequest {
             const response = await axios.post(endpoint, body, {
                 headers: {
                     'Accept': 'application/json',
+                    'Content-Type': 'application/json',
                     'X-Tenant-Schema': schema,
                     'Authorization': 'Bearer ' + access_token
                 },
@@ -119,6 +120,7 @@ class RenderRequest {
             const response = await axios.patch(endpoint, body, {
                 headers: {
                     'Accept': 'application/json',
+                    'Content-Type': 'application/json',
                     'X-Tenant-Schema': schema,
                     'Authorization': 'Bearer ' + access_token
                 },

@@ -2,7 +2,7 @@
     <div class="footer-content">
         <span
             >&copy; {new Date().getFullYear()}
-            <strong>Soandasystem</strong></span
+            <strong>Tourmanager</strong></span
         >
         <span class="version-tag">Gestión CRM V3.5</span>
     </div>

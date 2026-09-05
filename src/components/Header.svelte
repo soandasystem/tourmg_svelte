@@ -4,16 +4,34 @@
     import { navigate } from "svelte-routing";
     import { ROOT_URL } from "../lib/apis";
     import { secureStorage } from "../lib/secureStore";
+<<<<<<< HEAD
+=======
+
+    const IMAGE_BASE = import.meta.env.VITE_FRURL || "http://localhost:5173";
+
+    const userData = secureStorage.getItem("_us_");
+    const codeCompany = userData.codecompany;
+>>>>>>> 1735096244b9f02a4e952941a52c02946eb24e64
 
     const userData = secureStorage.getItem("_us_") || {};
     const codeCompany = secureStorage.getItem("codecompany") || "";
     $: idcl = $tenantStore;
     $: user = $authStore.user;
+<<<<<<< HEAD
     const IMAGE_BASE = import.meta.env.VITE_FRURL || "http://localhost:5173";
 
     // URL dinámica para el logo
     $: logoUrl = idcl ? `${IMAGE_BASE}/login_logo_${codeCompany}.png` : "";
+=======
+>>>>>>> 1735096244b9f02a4e952941a52c02946eb24e64
 
+    // URL dinámica para el logo
+    let logoUrl = "";
+    console.log("userData", userData);
+    if (codeCompany) {
+        logoUrl = `${IMAGE_BASE}/login_logo_${codeCompany}.png`;
+    }
+    console.log("logoUrl", logoUrl);
     function handleLogout() {
         logout();
         navigate(`/login`);
