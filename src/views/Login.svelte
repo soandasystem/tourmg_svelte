@@ -1,5 +1,5 @@
 <script>
-    import { mount, onMount } from "svelte";
+    import { onMount } from "svelte";
     import { navigate } from "svelte-routing";
     import CryptoJS from "crypto-js";
     import api, { fetchServiceData, ROOT_URL } from "../lib/apis";
@@ -27,11 +27,12 @@
     let forgotEmail = "";
     let generatedCode = "";
     let enteredCode = "";
+    let otpDigits = ["", "", "", "", "", ""];
+    let otpInputs = [];
     let newPassword = "";
     let confirmPassword = "";
     let userId = null;
     let resetLoginType = ""; // "user" o "course"
-    let companySchema = "global";
 
     let errorMessage = "";
     let loading = false;
@@ -39,6 +40,8 @@
     let imageLoaded = false;
     let imageError = false;
     let code_company = "";
+    let schema_name = "global";
+
     // Configuración base (como en el PHP)
     const IMAGE_BASE = import.meta.env.VITE_FRURL || "http://localhost:5173";
     const HASH_KEY = "749d50a656fb9";
@@ -62,11 +65,8 @@
         if (respComp.status === "success" && respComp.data.length > 0) {
             const company = respComp.data[0];
             code_company = company.identificador || "";
-<<<<<<< HEAD
+            schema_name = company.schema_name || "global";
             secureStorage.setItem("codecompany", company.identificador);
-=======
-            companySchema = company.schema_name || "global";
->>>>>>> 1735096244b9f02a4e952941a52c02946eb24e64
         }
 
         if (code_company) {
@@ -107,7 +107,7 @@
 
         try {
             // 1. Buscar parámetros de la compañía
-            let schema_name = "global";
+            schema_name = schema_name || "global";
             let plan = 0;
             let company_id = 0;
             if (code_company !== "GRL_999") {
@@ -357,10 +357,55 @@
         forgotEmail = "";
         generatedCode = "";
         enteredCode = "";
+        otpDigits = ["", "", "", "", "", ""];
         newPassword = "";
         confirmPassword = "";
         userId = null;
         resetLoginType = "";
+    }
+
+    function handleOtpInput(event, index) {
+        const value = event.target.value;
+        const digit = value.replace(/\D/g, "").slice(-1);
+        otpDigits[index] = digit;
+        otpDigits = [...otpDigits];
+
+        if (digit && index < 5) {
+            otpInputs[index + 1]?.focus();
+        }
+    }
+
+    function handleOtpKeyDown(event, index) {
+        if (event.key === "Backspace") {
+            if (!otpDigits[index] && index > 0) {
+                otpInputs[index - 1]?.focus();
+                otpDigits[index - 1] = "";
+                otpDigits = [...otpDigits];
+                event.preventDefault();
+            } else {
+                otpDigits[index] = "";
+                otpDigits = [...otpDigits];
+            }
+        } else if (event.key === "ArrowLeft" && index > 0) {
+            otpInputs[index - 1]?.focus();
+        } else if (event.key === "ArrowRight" && index < 5) {
+            otpInputs[index + 1]?.focus();
+        }
+    }
+
+    function handleOtpPaste(event) {
+        event.preventDefault();
+        const pasteData = (event.clipboardData || window.clipboardData).getData("text");
+        const digitsOnly = pasteData.replace(/\D/g, "").slice(0, 6);
+        if (!digitsOnly) return;
+
+        for (let i = 0; i < 6; i++) {
+            otpDigits[i] = digitsOnly[i] || "";
+        }
+        otpDigits = [...otpDigits];
+
+        const targetIndex = Math.min(digitsOnly.length, 5);
+        otpInputs[targetIndex]?.focus();
     }
 
     // Acción para manejar el foco de forma accesible (reemplaza autofocus)
@@ -378,11 +423,11 @@
         errorMessage = "";
         loading = true;
         try {
-            const schema = companySchema || "global";
+            const schema = schema_name || "global";
             const cleanUser = forgotUsername.trim();
 
             // 1. Validar en tabla 'users' (Usuarios del sistema)
-            userPayload = {
+            const userPayload = {
                 login_type: "user",
                 username: cleanUser,
             };
@@ -485,7 +530,11 @@
                 confirmButtonColor: "#0d6efd",
             });
 
+            otpDigits = ["", "", "", "", "", ""];
             currentStep = "forgotCode";
+            setTimeout(() => {
+                otpInputs[0]?.focus();
+            }, 100);
         } catch (e) {
             console.error(e);
             errorMessage = "Error al solicitar el código de recuperación.";
@@ -496,13 +545,14 @@
 
     // Verify code entered by user
     async function handleVerifyCode() {
-        if (!enteredCode || !enteredCode.trim()) {
-            errorMessage = "Ingresa el código de 6 dígitos recibido.";
+        enteredCode = otpDigits.join("").trim();
+        if (!enteredCode || enteredCode.length < 6) {
+            errorMessage = "Ingresa el código completo de 6 dígitos recibido.";
             return;
         }
 
         const storedCode = await secureStorage.getItem("_reset_code_");
-        if (storedCode && enteredCode.trim() === String(storedCode).trim()) {
+        if (storedCode && enteredCode === String(storedCode).trim()) {
             // Eliminar de secureStorage luego de la comparación exitosa
             await secureStorage.removeItem("_reset_code_");
             currentStep = "forgotReset";
@@ -530,7 +580,7 @@
         loading = true;
         errorMessage = "";
         try {
-            const schema = companySchema || "global";
+            const schema = schema_name || "global";
             let updateResult = null;
 
             if (resetLoginType === "user") {
@@ -708,15 +758,6 @@
                                 <label for="password" class="form-label mb-0"
                                     >Clave</label
                                 >
-                                <button
-                                    type="button"
-                                    class="btn btn-link enlace-gris p-0 text-decoration-none"
-                                    style="font-size: 0.85rem;"
-                                    on:click={() =>
-                                        (currentStep = "forgotUser")}
-                                >
-                                    ¿Olvidaste tu clave?
-                                </button>
                             </div>
                             <div class="input-group">
                                 <span class="input-group-text"
@@ -756,6 +797,14 @@
                                 on:click={() => (currentStep = "user")}
                                 >Volver</button
                             >
+                            <button
+                                type="button"
+                                class="btn btn-link enlace-gris p-0 text-decoration-none"
+                                style="font-size: 0.85rem;"
+                                on:click={() => (currentStep = "forgotUser")}
+                            >
+                                ¿Olvidaste tu clave?
+                            </button>
                         </div>
                     </div>
                 </form>
@@ -859,26 +908,33 @@
                 <form on:submit|preventDefault={handleVerifyCode}>
                     <div class="card fade-in">
                         <div class="mb-3 text-start">
-                            <label class="form-label" for="forgotCode"
+                            <label class="form-label mb-1" for="otp-0"
                                 >Código de verificación</label
                             >
-                            <div class="input-group">
-                                <span class="input-group-text"
-                                    ><i class="bi bi-shield-check"></i></span
-                                >
-                                <input
-                                    id="forgotCode"
-                                    class="form-control"
-                                    placeholder="Ingresa el código de 6 dígitos"
-                                    bind:value={enteredCode}
-                                    required
-                                    use:focus
-                                />
+                            <p class="text-muted small mb-3">
+                                Ingresa el código de 6 dígitos enviado a tu correo:
+                            </p>
+                            <div class="otp-container" on:paste={handleOtpPaste}>
+                                {#each otpDigits as digit, i}
+                                    <input
+                                        id={"otp-" + i}
+                                        type="text"
+                                        inputmode="numeric"
+                                        pattern="[0-9]*"
+                                        maxlength="1"
+                                        class="otp-input"
+                                        bind:this={otpInputs[i]}
+                                        value={digit}
+                                        on:input={(e) => handleOtpInput(e, i)}
+                                        on:keydown={(e) => handleOtpKeyDown(e, i)}
+                                        autocomplete="one-time-code"
+                                    />
+                                {/each}
                             </div>
                         </div>
-                        <div class="d-grid gap-2">
+                        <div class="d-grid gap-2 mt-2">
                             <button type="submit" class="btn btn-primary"
-                                >Verificar</button
+                                >Verificar código</button
                             >
                             <button
                                 type="button"
@@ -1200,6 +1256,35 @@
         color: #1e293b;
     }
 
+    /* Estilos para el código OTP de 6 dígitos */
+    .otp-container {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 12px 0 16px 0;
+    }
+
+    .otp-input {
+        width: 48px;
+        height: 54px;
+        text-align: center;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #1e293b;
+        background-color: #f8fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        outline: none;
+    }
+
+    .otp-input:focus {
+        border-color: #0d6efd;
+        background-color: #ffffff;
+        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15);
+        transform: translateY(-2px);
+    }
+
     /* Ajuste para móviles */
     @media (max-width: 992px) {
         .split-container {
@@ -1217,6 +1302,14 @@
         }
         .form-header {
             font-size: 1.8rem;
+        }
+        .otp-container {
+            gap: 4px;
+        }
+        .otp-input {
+            width: 40px;
+            height: 48px;
+            font-size: 1.2rem;
         }
     }
 </style>

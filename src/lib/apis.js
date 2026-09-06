@@ -36,6 +36,25 @@ export const ROOT_URL = import.meta.env.DEV ? "" : `${(import.meta.env.VITE_REND
  */
 class RenderRequest {
     /**
+     * Construye las cabeceras HTTP necesarias.
+     * Solo incluye Authorization si existe un token válido.
+     */
+    _getHeaders(schema = "global", token = "") {
+        const access_token = token || secureStorage.getItem('_tk_');
+        const headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-Tenant-Schema': schema
+        };
+
+        if (access_token && access_token !== 'null' && access_token !== 'undefined') {
+            headers['Authorization'] = 'Bearer ' + access_token;
+        }
+
+        return headers;
+    }
+
+    /**
      * Obtiene datos desde el servicio especificado.
      * Reemplaza a getData($service, $body = "", $urlencode = "", $id = "", $token= "global")
      */
@@ -44,15 +63,9 @@ class RenderRequest {
         if (id) endpoint += `/${id}`;
         if (urlencode) endpoint += `?${urlencode}`;
 
-        const access_token = secureStorage.getItem('_tk_');
-
         try {
             const response = await axios.get(endpoint, {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Tenant-Schema': schema,
-                    'Authorization': 'Bearer ' + access_token
-                },
+                headers: this._getHeaders(schema, token),
                 validateStatus: () => true // Capturar respuestas de error para procesar el JSON
             });
 
@@ -84,16 +97,9 @@ class RenderRequest {
         if (id) endpoint += `/${id}`;
         if (urlencode) endpoint += `?${urlencode}`;
 
-        const access_token = secureStorage.getItem('_tk_');
-
         try {
             const response = await axios.post(endpoint, body, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-Tenant-Schema': schema,
-                    'Authorization': 'Bearer ' + access_token
-                },
+                headers: this._getHeaders(schema, token),
                 validateStatus: (status) => status >= 200 && status < 300
             });
 
@@ -114,16 +120,9 @@ class RenderRequest {
         if (id) endpoint += `/${id}`;
         if (urlencode) endpoint += `?${urlencode}`;
 
-        const access_token = secureStorage.getItem('_tk_');
-
         try {
             const response = await axios.patch(endpoint, body, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-Tenant-Schema': schema,
-                    'Authorization': 'Bearer ' + access_token
-                },
+                headers: this._getHeaders(schema, token),
                 validateStatus: (status) => status >= 200 && status < 300
             });
 
@@ -144,15 +143,9 @@ class RenderRequest {
         if (id) endpoint += `/${id}`;
         if (urlencode) endpoint += `?${urlencode}`;
 
-        const access_token = secureStorage.getItem('_tk_');
-
         try {
             const response = await axios.delete(endpoint, {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Tenant-Schema': schema,
-                    'Authorization': 'Bearer ' + access_token
-                },
+                headers: this._getHeaders(schema, token),
                 validateStatus: () => true
             });
 
