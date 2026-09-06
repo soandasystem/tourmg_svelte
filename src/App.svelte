@@ -4,6 +4,7 @@
     import { authStore } from "./stores/auth";
     import { tenantStore } from "./stores/tenant";
     import Index from "./views/admin/index.svelte";
+    import Dashboard from "./views/admin/dashboard.svelte";
 
     // Vistas
     import Login from "./views/Login.svelte";
@@ -63,6 +64,12 @@
     <Route path="/admin/index">
         <MainLayout>
             <Index />
+        </MainLayout>
+    </Route>
+
+    <Route path="/admin/dashboard">
+        <MainLayout>
+            <Dashboard />
         </MainLayout>
     </Route>
 
