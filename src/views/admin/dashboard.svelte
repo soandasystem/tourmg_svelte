@@ -612,74 +612,166 @@
 </div>
 
 <style>
+    /* =====================================================
+       DASHBOARD - Paleta del proyecto
+       Primario:   #4e73df  (igual que Header, app.css)
+       Éxito:      #1cc88a
+       Info:       #36b9cc
+       Warning:    #f6c23e
+       Danger:     #e74a3b
+       Fondo:      #f8f9fc
+       Bordes:     #e3e6f0
+       Texto:      #333 / #555 / #858796
+    ===================================================== */
+
     .dashboard-wrapper {
         padding: 10px 5px;
+        background-color: #f8f9fc;
+        min-height: 100%;
     }
 
     .main-title {
-        font-size: 26px;
+        font-size: 24px;
         font-weight: 700;
-        color: #303641;
-        letter-spacing: -0.5px;
+        color: #333;
+        letter-spacing: -0.3px;
     }
 
     .subtitle {
-        font-size: 14px;
+        font-size: 13px;
+        color: #858796;
+    }
+
+    /* Selector de año */
+    .year-selector-box {
+        background-color: #ffffff;
+        border: 1px solid #e3e6f0;
+        border-radius: 8px;
+        padding: 6px 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
     }
 
     .form-select-custom {
-        min-width: 160px;
-        border-color: #cbd5e1;
-        border-radius: 8px;
-        padding: 6px 12px;
+        min-width: 150px;
+        border: 1px solid #e3e6f0;
+        border-radius: 6px;
+        padding: 5px 10px;
+        color: #333;
+        font-weight: 600;
+        font-size: 0.85rem;
+        background-color: #ffffff;
+    }
+
+    .form-select-custom:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 3px rgba(78, 115, 223, 0.2);
+        outline: none;
+    }
+
+    /* Cards base */
+    .card {
+        border-radius: 8px !important;
+        border: 1px solid #e3e6f0 !important;
+        background: #ffffff;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    }
+
+    .card-header {
+        border-radius: 8px 8px 0 0 !important;
+        background-color: #ffffff !important;
+        border-bottom: 1px solid #e3e6f0 !important;
     }
 
     /* KPI Cards */
     .kpi-card {
-        border-radius: 12px;
+        border-radius: 8px !important;
+        border: 1px solid #e3e6f0 !important;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
+        background: #ffffff;
     }
 
     .kpi-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08) !important;
+        box-shadow: 0 8px 20px rgba(78, 115, 223, 0.12) !important;
     }
 
     .kpi-label {
-        font-size: 0.75rem;
-        letter-spacing: 0.5px;
+        font-size: 0.72rem;
+        letter-spacing: 0.8px;
+        color: #858796;
+        text-transform: uppercase;
     }
 
     .kpi-value {
-        font-size: 1.5rem;
-        letter-spacing: -0.5px;
+        font-size: 1.4rem;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+        color: #333;
     }
 
     .kpi-icon-wrapper {
         width: 48px;
         height: 48px;
-        border-radius: 12px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.25rem;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+        opacity: 0.85;
     }
+
+    /* Colores KPI — paleta del proyecto */
+    .kpi-icon-wrapper.bg-primary { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); }
+    .kpi-icon-wrapper.bg-success { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); }
+    .kpi-icon-wrapper.bg-info    { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); }
+    .kpi-icon-wrapper.bg-warning { background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%); }
+
+    /* Overrides de color de texto */
+    .text-primary   { color: #4e73df !important; }
+    .text-success   { color: #1cc88a !important; }
+    .text-info      { color: #36b9cc !important; }
+    .text-warning   { color: #f6c23e !important; }
+    .text-dark      { color: #333 !important; }
+    .text-muted     { color: #858796 !important; }
+    .text-secondary { color: #555 !important; }
 
     /* Badges soft */
     .bg-primary-soft {
-        background-color: rgba(13, 110, 253, 0.12);
+        background-color: rgba(78, 115, 223, 0.12);
     }
     .bg-success-soft {
-        background-color: rgba(25, 135, 84, 0.12);
+        background-color: rgba(28, 200, 138, 0.12);
     }
     .bg-info-soft {
-        background-color: rgba(13, 202, 240, 0.15);
+        background-color: rgba(54, 185, 204, 0.12);
     }
     .bg-warning-soft {
-        background-color: rgba(255, 193, 7, 0.18);
+        background-color: rgba(246, 194, 62, 0.15);
     }
 
-    /* Avatars y rankings */
+    /* Backgrounds suaves */
+    .bg-light {
+        background-color: #f8f9fc !important;
+    }
+
+    /* Progress bars */
+    .progress {
+        background-color: #eaecf4;
+        border-radius: 99px;
+    }
+
+    .progress-bar.bg-primary { background-color: #4e73df !important; }
+    .progress-bar.bg-success { background-color: #1cc88a !important; }
+    .progress-bar.bg-info    { background-color: #36b9cc !important; }
+    .progress-bar.bg-warning { background-color: #f6c23e !important; }
+
+    .progress-stacked .progress-bar {
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    /* Avatar círculo (vendedor) */
     .avatar-circle {
         width: 36px;
         height: 36px;
@@ -687,19 +779,26 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+        color: #ffffff;
+        font-weight: 700;
+        flex-shrink: 0;
     }
 
+    /* Badges de ranking */
     .rank-badge {
         width: 32px;
         height: 32px;
-        border-radius: 8px;
+        border-radius: 6px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.85rem;
-        background-color: #f1f5f9;
-        color: #475569;
+        font-size: 0.8rem;
+        font-weight: 700;
+        background-color: #eaecf4;
+        color: #555;
+        flex-shrink: 0;
     }
 
     .rank-1 {
@@ -708,8 +807,8 @@
     }
 
     .rank-2 {
-        background-color: #e2e8f0;
-        color: #475569;
+        background-color: #e3e6f0;
+        color: #555;
     }
 
     .rank-3 {
@@ -717,26 +816,53 @@
         color: #c2410c;
     }
 
-    /* Gráficos */
+    /* Gráfico mensual */
     .monthly-chart-container {
-        border-bottom: 1px solid #e2e8f0;
+        border-bottom: 1px solid #e3e6f0;
     }
 
     .bar-combined {
         transition: height 0.4s ease;
         cursor: pointer;
+        border-radius: 4px 4px 0 0;
     }
 
     .bar-combined:hover {
-        opacity: 0.85;
+        filter: brightness(1.1);
     }
+
+    /* Barras GE y VG */
+    .bar-combined .bg-success { background-color: #1cc88a !important; }
+    .bar-combined .bg-info    { background-color: #36b9cc !important; }
+
+    .month-name {
+        font-size: 0.68rem;
+        color: #858796;
+        font-weight: 600;
+    }
+
+    /* Badge neutral de año */
+    .badge.bg-light {
+        background-color: #eaecf4 !important;
+        color: #555 !important;
+        border: 1px solid #e3e6f0 !important;
+        font-weight: 600;
+    }
+
+    /* Spinner */
+    .text-primary.spinner-border { color: #4e73df !important; }
 
     @media (max-width: 768px) {
         .main-title {
-            font-size: 20px;
+            font-size: 19px;
         }
         .kpi-value {
-            font-size: 1.25rem;
+            font-size: 1.15rem;
+        }
+        .kpi-icon-wrapper {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
         }
     }
 </style>

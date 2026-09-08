@@ -30,6 +30,9 @@
     let otpDigits = ["", "", "", "", "", ""];
     let otpInputs = [];
     let newPassword = "";
+    // Countdown para expiración del código OTP (15 min)
+    let otpSecondsLeft = 0;
+    let otpCountdownInterval = null;
     let confirmPassword = "";
     let userId = null;
     let resetLoginType = ""; // "user" o "course"
@@ -395,7 +398,9 @@
 
     function handleOtpPaste(event) {
         event.preventDefault();
-        const pasteData = (event.clipboardData || window.clipboardData).getData("text");
+        const pasteData = (event.clipboardData || window.clipboardData).getData(
+            "text",
+        );
         const digitsOnly = pasteData.replace(/\D/g, "").slice(0, 6);
         if (!digitsOnly) return;
 
@@ -479,9 +484,11 @@
                 }
             }
 
-            // 3. Generar código de 6 dígitos y guardarlo en secureStorage
+            // 3. Generar código de 6 dígitos, guardarlo con expiración de 3 min
             generatedCode = String(Math.floor(100000 + Math.random() * 900000));
+            const expiresAt = Date.now() + 3 * 60 * 1000; // 3 minutos en ms
             await secureStorage.setItem("_reset_code_", generatedCode);
+            await secureStorage.setItem("_reset_code_exp_", String(expiresAt));
 
             // 4. Enviar código por correo
             console.log("forgotEmail", forgotEmail);
@@ -526,12 +533,24 @@
             Swal.fire({
                 icon: "info",
                 title: "Código enviado",
-                text: `Se ha enviado un código de 6 dígitos a ${maskedEmail}.`,
-                confirmButtonColor: "#0d6efd",
+                text: `Se ha enviado un código de 6 dígitos a ${maskedEmail}. El código es válido por 3 minutos.`,
+                confirmButtonColor: "#4e73df",
             });
 
             otpDigits = ["", "", "", "", "", ""];
             currentStep = "forgotCode";
+
+            // Iniciar contador regresivo de 3 minutos
+            if (otpCountdownInterval) clearInterval(otpCountdownInterval);
+            otpSecondsLeft = 3 * 60;
+            otpCountdownInterval = setInterval(() => {
+                otpSecondsLeft -= 1;
+                if (otpSecondsLeft <= 0) {
+                    clearInterval(otpCountdownInterval);
+                    otpSecondsLeft = 0;
+                }
+            }, 1000);
+
             setTimeout(() => {
                 otpInputs[0]?.focus();
             }, 100);
@@ -551,14 +570,27 @@
             return;
         }
 
+        // Verificar expiración del código (15 minutos)
+        const expStored = await secureStorage.getItem("_reset_code_exp_");
+        if (!expStored || Date.now() > Number(expStored)) {
+            await secureStorage.removeItem("_reset_code_");
+            await secureStorage.removeItem("_reset_code_exp_");
+            if (otpCountdownInterval) clearInterval(otpCountdownInterval);
+            otpSecondsLeft = 0;
+            errorMessage = "El código ha expirado. Por favor solicita uno nuevo.";
+            return;
+        }
+
         const storedCode = await secureStorage.getItem("_reset_code_");
         if (storedCode && enteredCode === String(storedCode).trim()) {
             // Eliminar de secureStorage luego de la comparación exitosa
             await secureStorage.removeItem("_reset_code_");
+            await secureStorage.removeItem("_reset_code_exp_");
+            if (otpCountdownInterval) clearInterval(otpCountdownInterval);
             currentStep = "forgotReset";
             errorMessage = "";
         } else {
-            errorMessage = "El código ingresado es incorrecto o ha expirado.";
+            errorMessage = "El código ingresado es incorrecto.";
         }
     }
 
@@ -912,9 +944,13 @@
                                 >Código de verificación</label
                             >
                             <p class="text-muted small mb-3">
-                                Ingresa el código de 6 dígitos enviado a tu correo:
+                                Ingresa el código de 6 dígitos enviado a tu
+                                correo:
                             </p>
-                            <div class="otp-container" on:paste={handleOtpPaste}>
+                            <div
+                                class="otp-container"
+                                on:paste={handleOtpPaste}
+                            >
                                 {#each otpDigits as digit, i}
                                     <input
                                         id={"otp-" + i}
@@ -926,16 +962,45 @@
                                         bind:this={otpInputs[i]}
                                         value={digit}
                                         on:input={(e) => handleOtpInput(e, i)}
-                                        on:keydown={(e) => handleOtpKeyDown(e, i)}
+                                        on:keydown={(e) =>
+                                            handleOtpKeyDown(e, i)}
                                         autocomplete="one-time-code"
                                     />
                                 {/each}
                             </div>
+
+                            <!-- Contador regresivo de expiración -->
+                            <div class="otp-timer mt-3 text-center">
+                                {#if otpSecondsLeft > 0}
+                                    <span class="otp-timer-text {otpSecondsLeft < 120 ? 'expiring' : ''}">
+                                        <i class="fa fa-clock-o me-1"></i>
+                                        El código expira en
+                                        <strong>
+                                            {String(Math.floor(otpSecondsLeft / 60)).padStart(2, "0")}:{String(otpSecondsLeft % 60).padStart(2, "0")}
+                                        </strong>
+                                    </span>
+                                {:else}
+                                    <span class="otp-timer-text expired">
+                                        <i class="fa fa-times-circle me-1"></i>
+                                        El código ha expirado.
+                                    </span>
+                                {/if}
+                            </div>
                         </div>
                         <div class="d-grid gap-2 mt-2">
-                            <button type="submit" class="btn btn-primary"
-                                >Verificar código</button
-                            >
+                            {#if otpSecondsLeft > 0}
+                                <button type="submit" class="btn btn-primary"
+                                    >Verificar código</button
+                                >
+                            {:else}
+                                <button
+                                    type="button"
+                                    class="btn btn-warning"
+                                    on:click={resetSteps}
+                                >
+                                    <i class="fa fa-refresh me-1"></i>Solicitar nuevo código
+                                </button>
+                            {/if}
                             <button
                                 type="button"
                                 class="btn btn-link enlace-gris"
@@ -945,6 +1010,7 @@
                     </div>
                 </form>
             {/if}
+
 
             {#if currentStep === "forgotReset"}
                 <form on:submit|preventDefault={handleResetPassword}>
@@ -1283,6 +1349,41 @@
         background-color: #ffffff;
         box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15);
         transform: translateY(-2px);
+    }
+
+    /* Contador regresivo OTP */
+    .otp-timer {
+        font-size: 0.82rem;
+    }
+
+    .otp-timer-text {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 12px;
+        border-radius: 99px;
+        background-color: #f1f5f9;
+        color: #64748b;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .otp-timer-text.expiring {
+        background-color: #fff7ed;
+        color: #c2410c;
+        font-weight: 600;
+        animation: pulse-warning 1s ease-in-out infinite;
+    }
+
+    .otp-timer-text.expired {
+        background-color: #fef2f2;
+        color: #dc2626;
+        font-weight: 600;
+    }
+
+    @keyframes pulse-warning {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.7; }
     }
 
     /* Ajuste para móviles */
