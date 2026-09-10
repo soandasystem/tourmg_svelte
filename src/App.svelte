@@ -32,6 +32,8 @@
     import PaymentSales from "./views/payment/paymentsales.svelte";
     import Continuaflow from "./views/flowpagos/continuaflow.svelte";
     import Returnflow from "./views/flowpagos/returnflow.svelte";
+    import Continuarmpago from "./views/mercadopago/continuarmpago.svelte";
+    import MpSuccess from "./views/mercadopago/success.svelte";
     // Importamos CSS global
     import "./app.css";
 
@@ -190,5 +192,13 @@
     </Route>
     <Route path="/flowpagos/returnflow">
         <Returnflow />
+    </Route>
+
+    <Route path="/mercadopago/continuarmpago">
+        <Continuarmpago />
+    </Route>
+
+    <Route path="/mercadopago/success">
+        <MpSuccess />
     </Route>
 </Router>
