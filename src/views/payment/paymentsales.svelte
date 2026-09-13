@@ -156,6 +156,7 @@
                     totalVpagar = Number(inst.amount || 0);
                     totalPagado = Number(inst.paid_amount || 0);
                     totalAPagar = Number(inst.balance || 0);
+                    apagarInput = totalAPagar;
                 } else {
                     // Multi-cuota: guardar todas y filtrar pendientes
                     allInstallments = instData;
@@ -246,10 +247,21 @@
     }
 
     function payWithGateway(gw) {
+        const montoFinal = isSingle ? apagarInput : selectedInstallmentAmount;
+
+        if (!isSingle && selectedInstallmentIds.size === 0) {
+            Swal.fire(
+                "Atención",
+                "Selecciona al menos una cuota pendiente para pagar.",
+                "warning",
+            );
+            return;
+        }
+
         // Guarda el monto a pagar en el storage seguro bajo la variable "mpagar"
-        if ((apagarInput ?? 0) != 0 && (apagarInput ?? 0) >= 500) {
+        if ((montoFinal ?? 0) != 0 && (montoFinal ?? 0) >= 500) {
             const ud = secureStorage.getItem("_us_") || {};
-            ud.mpagar = apagarInput;
+            ud.mpagar = montoFinal;
             // Guardar IDs de cuotas seleccionadas para referencia posterior
             if (!isSingle) {
                 ud.selectedInstallments = [...selectedInstallmentIds];
@@ -843,71 +855,73 @@
                             </button>
                         {/if}
 
-                        <!-- Input monto a pagar -->
-                        <div class="voucher-box p-4 rounded-4">
-                            <h5 class="fw-bold mb-2 text-dark">
-                                <i
-                                    class="fa fa-money-bill-wave text-primary me-2"
-                                ></i>
-                                Monto a Pagar
-                            </h5>
-                            <p class="text-muted small mb-3">
-                                Ingresa un monto que no puede ser superior a la
-                                deuda pendiente.
-                            </p>
+                        <!-- Input monto a pagar (solo en modo cuota única) -->
+                        {#if isSingle}
+                            <div class="voucher-box p-4 rounded-4">
+                                <h5 class="fw-bold mb-2 text-dark">
+                                    <i
+                                        class="fa fa-money-bill-wave text-primary me-2"
+                                    ></i>
+                                    Monto a Pagar
+                                </h5>
+                                <p class="text-muted small mb-3">
+                                    Ingresa un monto que no puede ser superior a la
+                                    deuda pendiente.
+                                </p>
 
-                            <form
-                                on:submit|preventDefault={() => {
-                                    // el monto se usa en la lógica de voucher/pago
-                                }}
-                            >
-                                <div class="form-group-custom mb-3">
-                                    <label
-                                        class="control-label"
-                                        for="monto_apagar"
-                                    >
-                                        Monto
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="monto_apagar"
-                                        name="monto_apagar"
-                                        value={apagarInput}
-                                        on:input={(e) => {
-                                            const raw = e.target.value || "";
-                                            const num = Number(
-                                                String(raw).replace(
-                                                    /[^0-9]/g,
-                                                    "",
-                                                ),
-                                            );
-                                            const deuda = apagar;
-                                            apagarInput = Number.isFinite(num)
-                                                ? num
-                                                : 0;
-                                            if (apagarInput > deuda)
-                                                apagarInput = deuda;
-                                        }}
-                                        class="form-control-custom"
-                                        inputmode="numeric"
-                                        placeholder="Ej: 50000"
-                                        required
-                                    />
-                                </div>
+                                <form
+                                    on:submit|preventDefault={() => {
+                                        // el monto se usa en la lógica de voucher/pago
+                                    }}
+                                >
+                                    <div class="form-group-custom mb-3">
+                                        <label
+                                            class="control-label"
+                                            for="monto_apagar"
+                                        >
+                                            Monto
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="monto_apagar"
+                                            name="monto_apagar"
+                                            value={apagarInput}
+                                            on:input={(e) => {
+                                                const raw = e.target.value || "";
+                                                const num = Number(
+                                                    String(raw).replace(
+                                                        /[^0-9]/g,
+                                                        "",
+                                                    ),
+                                                );
+                                                const deuda = apagar;
+                                                apagarInput = Number.isFinite(num)
+                                                    ? num
+                                                    : 0;
+                                                if (apagarInput > deuda)
+                                                    apagarInput = deuda;
+                                            }}
+                                            class="form-control-custom"
+                                            inputmode="numeric"
+                                            placeholder="Ej: 50000"
+                                            required
+                                        />
+                                    </div>
 
-                                <div class="d-flex gap-2">
-                                    <button
-                                        type="button"
-                                        class="btn-save w-100 py-3"
-                                        on:click={() => {
-                                            apagarInput = apagar;
-                                        }}
-                                    >
-                                        Usar deuda completa
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
+                                    <div class="d-flex gap-2">
+                                        <button
+                                            type="button"
+                                            class="btn-save w-100 py-3"
+                                            on:click={() => {
+                                                apagarInput = apagar;
+                                            }}
+                                        >
+                                            Usar deuda completa
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        {/if}
                     </div>
 
                     <!-- ══════════ COLUMNA DERECHA: Gateways ══════════ -->

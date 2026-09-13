@@ -1,0 +1,41 @@
+test_venta_tavel
+
+Pais
+ChileChile
+
+User ID​
+2305485438
+
+Usuario
+TESTUSER67495305
+
+Contraseña
+d1gI99DY6C
+
+Código de verificación
+485438
+
+
+test_compra_travel
+
+País
+ChileChile
+
+User ID​
+2305487496
+
+Usuario
+TESTUSER624869309
+
+Contraseña
+LizWhKllcj
+
+Código de verificación
+487496
+
+Tarjetas de credito
+5416 7526 0258 2580	 123	11/30
+
+4168 8188 4444 7115	 123	11/30
+
+APRO	(otro) 123456789

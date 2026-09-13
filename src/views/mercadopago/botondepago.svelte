@@ -1,5 +1,6 @@
 <script>
     import { onMount } from "svelte";
+    import { navigate } from "svelte-routing";
 
     let public_key = "";
     let preference = "";
@@ -34,6 +35,10 @@
         }
     }
 
+    function handleBack() {
+        navigate("/payment/paymentsales");
+    }
+
     onMount(() => {
         const params = new URLSearchParams(window.location.search);
 
@@ -54,6 +59,9 @@
         <span>presione el botón <b>Pagar</b></span>
     </div>
     <div class="cho-container"></div>
+    <button type="button" class="btn-back" on:click={handleBack}>
+        <i class="fa fa-chevron-left me-1"></i> Volver
+    </button>
 </div>
 
 <style>
@@ -83,5 +91,26 @@
         justify-content: center;
         align-items: center;
         margin: 10px 0;
+    }
+    .btn-back {
+        background: #f8fafc;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+        padding: 10px 20px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 15px;
+    }
+    .btn-back:hover {
+        background: #f1f5f9;
+        color: #1e293b;
+        border-color: #cbd5e1;
+        transform: translateX(-2px);
     }
 </style>
