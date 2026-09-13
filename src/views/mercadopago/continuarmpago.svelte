@@ -1,7 +1,7 @@
 <script>
     import { onMount } from "svelte";
     import { fade } from "svelte/transition";
-    import { navigate } from "svelte-routing";
+    import { navigate, useLocation } from "svelte-routing";
     import { secureStorage } from "../../lib/secureStore";
     import api from "../../lib/apis.js";
     import { formatCurrency, formatDate, uniqid } from "../../lib/utils";
@@ -50,6 +50,7 @@
                 "",
                 schemaName,
             );
+
             if (result.status !== "success") {
                 throw new Error(
                     result.message ||
@@ -64,11 +65,19 @@
             secureStorage.setItem("_us_", ud);
 
             const data = result.data;
-            if (data && data.redirect_url) {
-                window.location.href = data.redirect_url;
+            console.log("data", data);
+            if (data) {
+                const params = new URLSearchParams({
+                    IDIngreso: data.id_ingreso,
+                    Identificador: data.identificador,
+                    MontoPagado: data.monto_pagado.toString(),
+                    Preference: data.preference,
+                    PublicKey: data.public_key,
+                });
+
+                navigate(`/mercadopago/botondepago?${params.toString()}`);
             } else {
-                errorMessage =
-                    "No se recibió la URL de redirección desde el servidor";
+                errorMessage = "No se recibió informacion desde el servidor";
             }
         } catch (error) {
             console.error("Error:", error);

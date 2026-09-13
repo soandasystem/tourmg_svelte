@@ -1,13 +1,8 @@
-<svelte:head>
-    <script src="https://sdk.mercadopago.com/js/v2"></script>
-</svelte:head>
-
 <script>
     import { onMount } from "svelte";
 
-    export let public_key = "";
-    export let preference = "";
-
+    let public_key = "";
+    let preference = "";
     let isLoaded = false;
 
     function initMercadoPago() {
@@ -20,18 +15,19 @@
 
         try {
             const mp = new MercadoPago(public_key, {
-                locale: "es-CL"
+                locale: "es-CL",
             });
 
             mp.checkout({
                 preference: {
-                    id: preference
+                    id: preference,
                 },
                 render: {
                     container: ".cho-container",
-                    label: "Pagar"
-                }
+                    label: "Pagar",
+                },
             });
+
             isLoaded = true;
         } catch (error) {
             console.error("Error inicializando MercadoPago:", error);
@@ -39,30 +35,49 @@
     }
 
     onMount(() => {
-        // Soporte tanto para props como para parámetros en la URL
         const params = new URLSearchParams(window.location.search);
-        if (!public_key) public_key = params.get("public_key") || "";
-        if (!preference) preference = params.get("preference") || params.get("preference_id") || "";
 
-        if (typeof MercadoPago !== "undefined") {
-            initMercadoPago();
-        } else {
-            const script = document.createElement("script");
-            script.src = "https://sdk.mercadopago.com/js/v2";
-            script.async = true;
-            script.onload = () => initMercadoPago();
-            document.head.appendChild(script);
-        }
-    });
+        public_key = params.get("PublicKey") || "";
+        preference = params.get("Preference") || "";
 
-    $: if (public_key && preference && !isLoaded) {
         initMercadoPago();
-    }
+    });
 </script>
 
-<div class="cho-container"></div>
+<svelte:head>
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+</svelte:head>
+
+<div class="payment-container">
+    <div class="payment-message">
+        <strong>Para continuar con el pago</strong>
+        <span>presione el botón <b>Pagar</b></span>
+    </div>
+    <div class="cho-container"></div>
+</div>
 
 <style>
+    .payment-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 20px 0;
+    }
+    .payment-message {
+        text-align: center;
+        margin-bottom: 15px;
+        color: #444;
+        font-size: 15px;
+    }
+    .payment-message strong {
+        display: block;
+        font-size: 17px;
+        margin-bottom: 5px;
+    }
+    .payment-message span {
+        display: block;
+        color: #666;
+    }
     .cho-container {
         display: flex;
         justify-content: center;
