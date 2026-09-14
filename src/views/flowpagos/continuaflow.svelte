@@ -42,7 +42,7 @@
                 sale_id: parseInt(saleId),
                 curso_id: Number(passengersId),
                 user_rut: userrut,
-                urlreturn: urlReturn + "/flowpagos/returnflow",
+                urlreturn: "https://tourmg-go.onrender.com/api/v3.5/returnflow",
                 urlconfirmation:
                     "https://tourmg-go.onrender.com/api/v3.5/token",
             };
