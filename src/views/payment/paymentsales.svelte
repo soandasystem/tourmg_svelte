@@ -855,8 +855,8 @@
                             </button>
                         {/if}
 
-                        <!-- Input monto a pagar (solo en modo cuota única) -->
-                        {#if isSingle}
+                        <!-- Input monto a pagar (solo en modo cuota única y con saldo pendiente) -->
+                        {#if isSingle && apagar > 0}
                             <div class="voucher-box p-4 rounded-4">
                                 <h5 class="fw-bold mb-2 text-dark">
                                     <i
@@ -885,7 +885,7 @@
                                             type="text"
                                             id="monto_apagar"
                                             name="monto_apagar"
-                                            value={apagarInput}
+                                            value={apagarInput > 0 ? apagarInput : ""}
                                             on:input={(e) => {
                                                 const raw = e.target.value || "";
                                                 const num = Number(
