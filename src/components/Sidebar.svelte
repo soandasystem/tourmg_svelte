@@ -14,15 +14,13 @@
     $: baseUrl = `/admin`;
     $: user = $authStore.user;
 
-    // Estado para controlar la apertura de los submenús
-    let menuConfigOpen = false;
-    let menuIntegracionesOpen = false;
-    let menuGDSOpen = false;
-    let menuVentasOpen = false;
-    let menuPagosOpen = false;
+    // Estado para controlar la apertura de los submenús y visibilidad del sidebar
+    let isSidebarOpen = true;
+    let openSubmenu = ""; // values: 'config', 'integraciones', 'gds', 'ventas', 'pagos'
 
     // Abrir automáticamente el submenú correspondiente si estamos en alguna de sus rutas
     $: {
+        openSubmenu = "";
         if (
             [
                 `${baseUrl}/company`,
@@ -32,23 +30,20 @@
                 `${baseUrl}/users`,
             ].some((p) => activePath.startsWith(p))
         ) {
-            menuConfigOpen = true;
-        }
-        if (
+            openSubmenu = "config";
+        } else if (
             [`${baseUrl}/gatewaysconfig`, `${baseUrl}/gateways`].some((p) =>
                 activePath.startsWith(p),
             )
         ) {
-            menuIntegracionesOpen = true;
-        }
-        if (
+            openSubmenu = "integraciones";
+        } else if (
             [`${baseUrl}/gdsair`, `${baseUrl}/gdshotel`].some((p) =>
                 activePath.startsWith(p),
             )
         ) {
-            menuGDSOpen = true;
-        }
-        if (
+            openSubmenu = "gds";
+        } else if (
             [
                 `${baseUrl}/quotes`,
                 `${baseUrl}/sales`,
@@ -57,29 +52,43 @@
                 `${baseUrl}/salesreport`,
             ].some((p) => activePath.startsWith(p))
         ) {
-            menuVentasOpen = true;
-        }
-        if (
+            openSubmenu = "ventas";
+        } else if (
             [`${baseUrl}/entry`, `${baseUrl}/listpay`].some((p) =>
                 activePath.startsWith(p),
             )
         ) {
-            menuPagosOpen = true;
+            openSubmenu = "pagos";
         }
     }
 
-    // Funciones toggle
-    const toggleConfig = () => (menuConfigOpen = !menuConfigOpen);
-    const toggleIntegraciones = () =>
-        (menuIntegracionesOpen = !menuIntegracionesOpen);
-    const toggleGDS = () => (menuGDSOpen = !menuGDSOpen);
-    const toggleVentas = () => (menuVentasOpen = !menuVentasOpen);
-    const togglePagos = () => (menuPagosOpen = !menuPagosOpen);
+    // Función toggle para submenús: asegura que sólo uno esté abierto a la vez
+    const toggleSubmenu = (name) => {
+        openSubmenu = openSubmenu === name ? "" : name;
+    };
+    // Función toggle para el sidebar
+    const toggleSidebar = () => {
+        isSidebarOpen = !isSidebarOpen;
+    };
+
+    const toggleConfig = () => toggleSubmenu("config");
+    const toggleIntegraciones = () => toggleSubmenu("integraciones");
+    const toggleGDS = () => toggleSubmenu("gds");
+    const toggleVentas = () => toggleSubmenu("ventas");
+    const togglePagos = () => toggleSubmenu("pagos");
 </script>
 
-<div class="sidebar-menu">
+<!-- <div class="sidebar-menu"> -->
+<div class="sidebar-menu {isSidebarOpen ? '' : 'closed'}">
     <div class="sidebar-menu-header">
         <div class="brand-text">MENÚ PRINCIPAL</div>
+        <button
+            class="hamburger-btn"
+            on:click={toggleSidebar}
+            aria-label="Toggle menu"
+        >
+            <i class="fa fa-bars"></i>
+        </button>
     </div>
     <div class="sidebar-menu-inner">
         <ul id="main-menu" class="main-menu">
@@ -114,13 +123,17 @@
 
             <!-- Configuración Base -->
             {#if hasPermission(rol, "company") || hasPermission(rol, "programas") || hasPermission(rol, "roles") || hasPermission(rol, "school") || hasPermission(rol, "users")}
-                <li class="has-sub {menuConfigOpen ? 'active opened' : ''}">
+                <li
+                    class="has-sub {openSubmenu === 'config'
+                        ? 'active opened'
+                        : ''}"
+                >
                     <a href="#!" on:click|preventDefault={toggleConfig}>
-                        <i class="fa fa-fw fa-cog"></i>
+                        <i class="fa fa-fw fa-bars"></i>
                         <span class="title">Configuración Base</span>
                         <i class="fa fa-chevron-right chevron"></i>
                     </a>
-                    {#if menuConfigOpen}
+                    {#if openSubmenu === "config"}
                         <ul class="sub-menu">
                             {#if hasPermission(rol, "company")}
                                 <li
@@ -190,11 +203,11 @@
                         : ''}"
                 >
                     <a href="#!" on:click|preventDefault={toggleIntegraciones}>
-                        <i class="fa fa-fw fa-cog"></i>
+                        <i class="fa fa-fw fa-code-merge"></i>
                         <span class="title">Integraciones</span>
                         <i class="fa fa-chevron-right chevron"></i>
                     </a>
-                    {#if menuIntegracionesOpen}
+                    {#if openSubmenu === "integraciones"}
                         <ul class="sub-menu">
                             {#if hasPermission(rol, "gatewaysconfig")}
                                 <li
@@ -230,13 +243,17 @@
 
             <!-- GDS Amadeus -->
             {#if hasPermission(rol, "gdsair") || hasPermission(rol, "gdshotel")}
-                <li class="has-sub {menuGDSOpen ? 'active opened' : ''}">
+                <li
+                    class="has-sub {openSubmenu === 'gds'
+                        ? 'active opened'
+                        : ''}"
+                >
                     <a href="#!" on:click|preventDefault={toggleGDS}>
-                        <i class="fa fa-fw fa-cog"></i>
+                        <i class="fa fa-fw fa-plane"></i>
                         <span class="title">GDS Amadeus</span>
                         <i class="fa fa-chevron-right chevron"></i>
                     </a>
-                    {#if menuGDSOpen}
+                    {#if openSubmenu === "gds"}
                         <ul class="sub-menu">
                             {#if hasPermission(rol, "gdsair")}
                                 <li
@@ -267,13 +284,17 @@
 
             <!-- Ventas -->
             {#if hasPermission(rol, "sales") || hasPermission(rol, "course") || hasPermission(rol, "salesreport") || hasPermission(rol, "quotes") || hasPermission(rol, "voucher")}
-                <li class="has-sub {menuVentasOpen ? 'active opened' : ''}">
+                <li
+                    class="has-sub {openSubmenu === 'ventas'
+                        ? 'active opened'
+                        : ''}"
+                >
                     <a href="#!" on:click|preventDefault={toggleVentas}>
-                        <i class="fa fa-fw fa-cog"></i>
+                        <i class="fa fa-fw fa-ticket-alt"></i>
                         <span class="title">Ventas</span>
                         <i class="fa fa-chevron-right chevron"></i>
                     </a>
-                    {#if menuVentasOpen}
+                    {#if openSubmenu === "ventas"}
                         <ul class="sub-menu">
                             {#if hasPermission(rol, "quotes")}
                                 <li
@@ -346,13 +367,17 @@
 
             <!-- Pagos -->
             {#if hasPermission(rol, "entry") || hasPermission(rol, "listpay")}
-                <li class="has-sub {menuPagosOpen ? 'active opened' : ''}">
+                <li
+                    class="has-sub {openSubmenu === 'pagos'
+                        ? 'active opened'
+                        : ''}"
+                >
                     <a href="#!" on:click|preventDefault={togglePagos}>
-                        <i class="fa fa-fw fa-cog"></i>
+                        <i class="fa fa-fw fa-money-check"></i>
                         <span class="title">Pagos</span>
                         <i class="fa fa-chevron-right chevron"></i>
                     </a>
-                    {#if menuPagosOpen}
+                    {#if openSubmenu === "pagos"}
                         <ul class="sub-menu">
                             {#if hasPermission(rol, "entry")}
                                 <li
@@ -384,22 +409,35 @@
             {/if}
         </ul>
     </div>
+    {#if !isSidebarOpen}
+        <button
+            class="hamburger-btn floating"
+            on:click={toggleSidebar}
+            aria-label="Open menu"
+        >
+            <i class="fa fa-bars"></i>
+        </button>
+    {/if}
 </div>
 
 <style>
-    .sidebar-menu {
-        width: 260px;
-        background-color: #2c2e2f;
-        color: #aaabae;
-        height: 100vh;
-        overflow-y: auto;
-        font-family: "Arimo", "Helvetica Neue", Helvetica, Arial, sans-serif;
-        display: flex;
-        flex-direction: column;
-        transition: width 0.3s ease;
-        position: sticky;
-        top: 0;
-        z-index: 100;
+    .sidebar-menu.closed {
+        width: 0;
+        overflow: hidden;
+    }
+    .hamburger-btn {
+        background: none;
+        border: none;
+        color: #fff;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+    }
+    .hamburger-btn.floating {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 200;
     }
 
     .sidebar-menu-header {
