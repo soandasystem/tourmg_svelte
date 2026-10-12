@@ -62,7 +62,7 @@
         <!-- Layout Móvil: fullscreen PWA con bottom nav -->
         <div class="campo-mobile">
             <header class="mobile-header">
-                <button class="back-btn-mobile" on:click={() => history.back()}>
+                <button class="back-btn-mobile" on:click={() => history.back()} aria-label="Volver">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <path d="M19 12H5M12 19l-7-7 7-7"/>
                     </svg>

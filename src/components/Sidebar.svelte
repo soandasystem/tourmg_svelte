@@ -5,8 +5,8 @@
     import { hasPermission } from "../lib/utils";
     import { secureStorage } from "../lib/secureStore";
 
-    const userData = secureStorage.getItem("_us_");
-    const rol = userData.rol_id;
+    $: userData = $authStore.user || secureStorage.getItem("_us_") || {};
+    $: rol = userData?.rol_id;
 
     export let activePath = "";
 
@@ -198,7 +198,7 @@
             <!-- Integraciones -->
             {#if hasPermission(rol, "gateways") || hasPermission(rol, "gatewaysconfig")}
                 <li
-                    class="has-sub {menuIntegracionesOpen
+                    class="has-sub {openSubmenu === 'integraciones'
                         ? 'active opened'
                         : ''}"
                 >
@@ -407,6 +407,14 @@
                     {/if}
                 </li>
             {/if}
+
+            <!-- Módulo Campo -->
+            <li class={activePath.startsWith("/campo") ? "active" : ""}>
+                <a href="/campo" use:link>
+                    <i class="fa fa-compass"></i>
+                    <span class="title">Campo</span>
+                </a>
+            </li>
         </ul>
     </div>
     {#if !isSidebarOpen}
@@ -421,17 +429,40 @@
 </div>
 
 <style>
+    /* Contenedor principal del Sidebar */
+    .sidebar-menu {
+        width: 260px;
+        min-width: 260px;
+        background-color: #0c0d12;
+        color: #ffffff;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        transition: width 0.3s ease, min-width 0.3s ease;
+        position: relative;
+        z-index: 100;
+        box-shadow: 3px 0 16px rgba(0, 0, 0, 0.45);
+        user-select: none;
+    }
+
     .sidebar-menu.closed {
         width: 0;
+        min-width: 0;
         overflow: hidden;
     }
+
     .hamburger-btn {
         background: none;
         border: none;
-        color: #fff;
-        font-size: 1.5rem;
+        color: #ffffff;
+        font-size: 1.4rem;
         cursor: pointer;
         padding: 0.5rem;
+        transition: color 0.2s ease, transform 0.2s ease;
+    }
+    .hamburger-btn:hover {
+        color: #38bdf8;
+        transform: scale(1.1);
     }
     .hamburger-btn.floating {
         position: fixed;
@@ -440,34 +471,39 @@
         z-index: 200;
     }
 
+    /* Cabecera del Sidebar */
     .sidebar-menu-header {
         height: 70px;
         display: flex;
         align-items: center;
+        justify-content: space-between;
         padding: 0 25px;
-        background-color: #242627;
-        margin-bottom: 10px;
+        background-color: #06070a;
+        border-bottom: 1px solid #1a1e28;
+        margin-bottom: 8px;
     }
 
     .brand-text {
-        color: #fff;
+        color: #ffffff;
         font-weight: 700;
-        font-size: 0.8rem;
-        letter-spacing: 1px;
-        opacity: 0.8;
+        font-size: 0.85rem;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
     }
 
     .sidebar-menu-inner {
         flex: 1;
+        overflow-y: auto;
     }
 
+    /* Divisores de sección */
     .menu-divider {
-        padding: 15px 25px 10px;
-        font-size: 0.7rem;
+        padding: 18px 25px 8px;
+        font-size: 0.72rem;
         font-weight: 700;
         text-transform: uppercase;
-        color: #555;
-        letter-spacing: 1px;
+        color: #94a3b8;
+        letter-spacing: 1.5px;
     }
 
     /* Menú Principal */
@@ -485,10 +521,11 @@
         display: flex;
         align-items: center;
         padding: 12px 25px;
-        color: #aaabae;
+        color: #ffffff;
         text-decoration: none;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        font-size: 0.85rem;
+        font-size: 0.88rem;
+        font-weight: 500;
         border-left: 3px solid transparent;
     }
 
@@ -497,72 +534,103 @@
         margin-right: 12px;
         font-size: 1rem;
         text-align: center;
-        transition: transform 0.2s ease;
+        color: #cbd5e1;
+        transition: all 0.2s ease;
     }
 
-    .main-menu li.active > a,
+    /* Hover en opciones principales: azul vibrante y halo de fondo */
     .main-menu li a:hover {
-        background-color: rgba(255, 255, 255, 0.05);
-        color: #fff;
+        background-color: rgba(56, 189, 248, 0.12);
+        color: #38bdf8 !important;
+        border-left-color: #38bdf8;
     }
 
+    .main-menu li a:hover i {
+        color: #38bdf8 !important;
+        transform: scale(1.15);
+    }
+
+    /* Opción activa principal */
     .main-menu li.active > a {
-        background-color: #313334;
-        border-left-color: #4e73df;
+        background-color: rgba(56, 189, 248, 0.18);
+        color: #38bdf8 !important;
+        border-left-color: #38bdf8;
+        font-weight: 600;
     }
 
     .main-menu li.active > a i {
-        color: #4e73df;
+        color: #38bdf8 !important;
     }
 
     /* Submenús */
     .sub-menu {
         list-style: none;
-        padding: 5px 0;
-        background-color: #242627;
+        padding: 6px 0;
+        margin: 0;
+        background-color: #06070a;
+        border-top: 1px solid #141822;
+        border-bottom: 1px solid #141822;
+        box-shadow: inset 3px 0 0 rgba(56, 189, 248, 0.25);
     }
 
     .sub-menu li a {
-        padding-left: 57px;
-        font-size: 0.8rem;
-        border-left: none;
+        padding: 10px 25px 10px 52px;
+        font-size: 0.82rem;
+        color: #ffffff !important;
+        font-weight: 400;
+        border-left: 3px solid transparent;
+        transition: all 0.2s ease;
     }
 
+    /* Hover en submenú */
     .sub-menu li a:hover {
-        background-color: rgba(255, 255, 255, 0.03);
+        background-color: rgba(56, 189, 248, 0.15);
+        color: #38bdf8 !important;
+        border-left-color: #38bdf8;
+        padding-left: 56px;
     }
 
+    /* Submenú activo */
     .sub-menu li.active a {
-        color: #fff;
+        background-color: rgba(56, 189, 248, 0.2);
+        color: #38bdf8 !important;
+        border-left-color: #38bdf8;
         font-weight: 600;
     }
 
+    /* Icono Chevron / flecha */
     .chevron {
-        font-size: 10px !important;
+        font-size: 11px !important;
         margin-left: auto;
-        color: #aaabae;
-        opacity: 0.5;
-        transition: transform 0.3s ease;
+        color: #94a3b8;
+        transition: transform 0.3s ease, color 0.2s ease;
+    }
+
+    .main-menu li a:hover .chevron {
+        color: #38bdf8;
     }
 
     li.opened > a .chevron {
-        opacity: 1;
+        color: #38bdf8;
         transform: rotate(90deg);
-        color: #fff;
     }
 
     /* Custom scrollbar para el sidebar */
-    .sidebar-menu::-webkit-scrollbar {
-        width: 4px;
+    .sidebar-menu::-webkit-scrollbar,
+    .sidebar-menu-inner::-webkit-scrollbar {
+        width: 5px;
     }
-    .sidebar-menu::-webkit-scrollbar-track {
-        background: #2c2e2f;
+    .sidebar-menu::-webkit-scrollbar-track,
+    .sidebar-menu-inner::-webkit-scrollbar-track {
+        background: #06070a;
     }
-    .sidebar-menu::-webkit-scrollbar-thumb {
-        background: #444;
+    .sidebar-menu::-webkit-scrollbar-thumb,
+    .sidebar-menu-inner::-webkit-scrollbar-thumb {
+        background: #1e293b;
         border-radius: 4px;
     }
-    .sidebar-menu::-webkit-scrollbar-thumb:hover {
-        background: #555;
+    .sidebar-menu::-webkit-scrollbar-thumb:hover,
+    .sidebar-menu-inner::-webkit-scrollbar-thumb:hover {
+        background: #38bdf8;
     }
 </style>

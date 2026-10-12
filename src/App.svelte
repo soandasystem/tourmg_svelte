@@ -35,6 +35,12 @@
     import Continuarmpago from "./views/mercadopago/continuarmpago.svelte";
     import MpSuccess from "./views/mercadopago/success.svelte";
     import Botondepago from "./views/mercadopago/botondepago.svelte";
+    // Módulo Campo
+    import CampoLayout from "./components/campo/CampoLayout.svelte";
+    import CampoIndex from "./views/campo/index.svelte";
+    import TrabajoNueva from "./views/campo/trabajo/nueva.svelte";
+    import TrabajoIndex from "./views/campo/trabajo/index.svelte";
+    import Actividad from "./views/campo/trabajo/actividad.svelte";
     // Importamos CSS global
     import "./app.css";
 
@@ -202,5 +208,30 @@
 
     <Route path="/mercadopago/botondepago">
         <Botondepago />
+    </Route>
+
+    <!-- Rutas Módulo Campo -->
+    <Route path="/campo">
+        <CampoLayout>
+            <CampoIndex />
+        </CampoLayout>
+    </Route>
+
+    <Route path="/campo/trabajo/nueva">
+        <CampoLayout>
+            <TrabajoNueva />
+        </CampoLayout>
+    </Route>
+
+    <Route path="/campo/trabajo/:id" let:params>
+        <CampoLayout>
+            <TrabajoIndex id={params.id} />
+        </CampoLayout>
+    </Route>
+
+    <Route path="/campo/actividad/:id" let:params>
+        <CampoLayout>
+            <Actividad id={params.id} />
+        </CampoLayout>
     </Route>
 </Router>
