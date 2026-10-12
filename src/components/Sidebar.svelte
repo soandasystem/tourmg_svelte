@@ -4,6 +4,7 @@
     import { authStore } from "../stores/auth";
     import { hasPermission } from "../lib/utils";
     import { secureStorage } from "../lib/secureStore";
+    import { isSidebarOpen, toggleSidebar } from "../stores/sidebarStore";
 
     $: userData = $authStore.user || secureStorage.getItem("_us_") || {};
     $: rol = userData?.rol_id;
@@ -14,8 +15,7 @@
     $: baseUrl = `/admin`;
     $: user = $authStore.user;
 
-    // Estado para controlar la apertura de los submenús y visibilidad del sidebar
-    let isSidebarOpen = true;
+    // Estado para controlar la apertura de los submenús
     let openSubmenu = ""; // values: 'config', 'integraciones', 'gds', 'ventas', 'pagos'
 
     // Abrir automáticamente el submenú correspondiente si estamos en alguna de sus rutas
@@ -66,10 +66,6 @@
     const toggleSubmenu = (name) => {
         openSubmenu = openSubmenu === name ? "" : name;
     };
-    // Función toggle para el sidebar
-    const toggleSidebar = () => {
-        isSidebarOpen = !isSidebarOpen;
-    };
 
     const toggleConfig = () => toggleSubmenu("config");
     const toggleIntegraciones = () => toggleSubmenu("integraciones");
@@ -78,14 +74,25 @@
     const togglePagos = () => toggleSubmenu("pagos");
 </script>
 
-<!-- <div class="sidebar-menu"> -->
-<div class="sidebar-menu {isSidebarOpen ? '' : 'closed'}">
+{#if !$isSidebarOpen}
+    <button
+        class="hamburger-btn floating"
+        on:click={toggleSidebar}
+        title="Abrir menú"
+        aria-label="Abrir menú"
+    >
+        <i class="fa fa-bars"></i>
+    </button>
+{/if}
+
+<div class="sidebar-menu {$isSidebarOpen ? '' : 'closed'}">
     <div class="sidebar-menu-header">
         <div class="brand-text">MENÚ PRINCIPAL</div>
         <button
             class="hamburger-btn"
             on:click={toggleSidebar}
-            aria-label="Toggle menu"
+            title="Cerrar menú"
+            aria-label="Cerrar menú"
         >
             <i class="fa fa-bars"></i>
         </button>
@@ -203,7 +210,7 @@
                         : ''}"
                 >
                     <a href="#!" on:click|preventDefault={toggleIntegraciones}>
-                        <i class="fa fa-fw fa-code-merge"></i>
+                        <i class="fa fa-fw fa-object-group"></i>
                         <span class="title">Integraciones</span>
                         <i class="fa fa-chevron-right chevron"></i>
                     </a>
@@ -290,7 +297,7 @@
                         : ''}"
                 >
                     <a href="#!" on:click|preventDefault={toggleVentas}>
-                        <i class="fa fa-fw fa-ticket-alt"></i>
+                        <i class="fa fa-fw fa-ticket"></i>
                         <span class="title">Ventas</span>
                         <i class="fa fa-chevron-right chevron"></i>
                     </a>
@@ -373,7 +380,7 @@
                         : ''}"
                 >
                     <a href="#!" on:click|preventDefault={togglePagos}>
-                        <i class="fa fa-fw fa-money-check"></i>
+                        <i class="fa fa-fw fa-credit-card"></i>
                         <span class="title">Pagos</span>
                         <i class="fa fa-chevron-right chevron"></i>
                     </a>
@@ -408,24 +415,16 @@
                 </li>
             {/if}
 
-            <!-- Módulo Campo -->
+            <!-- Módulo Campo 
             <li class={activePath.startsWith("/campo") ? "active" : ""}>
                 <a href="/campo" use:link>
                     <i class="fa fa-compass"></i>
                     <span class="title">Campo</span>
                 </a>
             </li>
+        -->
         </ul>
     </div>
-    {#if !isSidebarOpen}
-        <button
-            class="hamburger-btn floating"
-            on:click={toggleSidebar}
-            aria-label="Open menu"
-        >
-            <i class="fa fa-bars"></i>
-        </button>
-    {/if}
 </div>
 
 <style>
@@ -438,7 +437,9 @@
         min-height: 100vh;
         display: flex;
         flex-direction: column;
-        transition: width 0.3s ease, min-width 0.3s ease;
+        transition:
+            width 0.3s ease,
+            min-width 0.3s ease;
         position: relative;
         z-index: 100;
         box-shadow: 3px 0 16px rgba(0, 0, 0, 0.45);
@@ -458,7 +459,9 @@
         font-size: 1.4rem;
         cursor: pointer;
         padding: 0.5rem;
-        transition: color 0.2s ease, transform 0.2s ease;
+        transition:
+            color 0.2s ease,
+            transform 0.2s ease;
     }
     .hamburger-btn:hover {
         color: #38bdf8;
@@ -466,9 +469,27 @@
     }
     .hamburger-btn.floating {
         position: fixed;
-        top: 1rem;
-        left: 1rem;
-        z-index: 200;
+        top: 14px;
+        left: 14px;
+        z-index: 1050;
+        background-color: #0c0d12;
+        color: #ffffff;
+        border: 1px solid #1e2533;
+        border-radius: 8px;
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+        transition: all 0.2s ease;
+    }
+    .hamburger-btn.floating:hover {
+        background-color: #161922;
+        color: #38bdf8;
+        border-color: #38bdf8;
+        transform: scale(1.08);
     }
 
     /* Cabecera del Sidebar */
@@ -603,7 +624,9 @@
         font-size: 11px !important;
         margin-left: auto;
         color: #94a3b8;
-        transition: transform 0.3s ease, color 0.2s ease;
+        transition:
+            transform 0.3s ease,
+            color 0.2s ease;
     }
 
     .main-menu li a:hover .chevron {

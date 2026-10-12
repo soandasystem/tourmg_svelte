@@ -56,8 +56,10 @@
         display: flex;
         flex-direction: column;
         min-height: 100vh;
-        width: calc(100% - 260px);
+        min-width: 0;
+        width: 100%;
         overflow-x: hidden;
+        transition: width 0.3s ease;
     }
 
     .content-area {

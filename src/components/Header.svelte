@@ -4,6 +4,7 @@
     import { navigate } from "svelte-routing";
     import { ROOT_URL } from "../lib/apis";
     import { secureStorage } from "../lib/secureStore";
+    import { isSidebarOpen } from "../stores/sidebarStore";
     const IMAGE_BASE = import.meta.env.VITE_FRURL || "http://localhost:5173";
 
     $: idcl = $tenantStore;
@@ -20,7 +21,7 @@
 </script>
 
 <header class="app-header">
-    <div class="header-left">
+    <div class="header-left" class:sidebar-closed={!$isSidebarOpen}>
         {#if logoUrl}
             <div class="logo-wrapper">
                 <img src={logoUrl} alt="Company Logo" class="company-logo" />
@@ -77,6 +78,11 @@
     .header-left {
         display: flex;
         align-items: center;
+        transition: padding-left 0.3s ease;
+    }
+
+    .header-left.sidebar-closed {
+        padding-left: 46px;
     }
 
     .logo-wrapper {
