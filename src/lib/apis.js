@@ -1,6 +1,9 @@
 import axios from 'axios';
 import { secureStorage } from './secureStore';
 
+// Habilitar el envío automático de cookies (incluyendo cookies HttpOnly) en todas las peticiones
+axios.defaults.withCredentials = true;
+
 /**
  * RENDER_ENDPOINT es la base de la URL para las peticiones API.
  * En desarrollo usa el proxy de Vite (/proxy-api → tourmanager-bnd.onrender.com/api).
@@ -66,6 +69,7 @@ class RenderRequest {
         try {
             const response = await axios.get(endpoint, {
                 headers: this._getHeaders(schema, token),
+                withCredentials: true,
                 validateStatus: () => true // Capturar respuestas de error para procesar el JSON
             });
 
@@ -100,6 +104,7 @@ class RenderRequest {
         try {
             const response = await axios.post(endpoint, body, {
                 headers: this._getHeaders(schema, token),
+                withCredentials: true,
                 validateStatus: (status) => status >= 200 && status < 300
             });
 
@@ -123,6 +128,7 @@ class RenderRequest {
         try {
             const response = await axios.patch(endpoint, body, {
                 headers: this._getHeaders(schema, token),
+                withCredentials: true,
                 validateStatus: (status) => status >= 200 && status < 300
             });
 
@@ -146,6 +152,7 @@ class RenderRequest {
         try {
             const response = await axios.delete(endpoint, {
                 headers: this._getHeaders(schema, token),
+                withCredentials: true,
                 validateStatus: () => true
             });
 
