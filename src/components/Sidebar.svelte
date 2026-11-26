@@ -217,6 +217,7 @@
                     {#if openSubmenu === "integraciones"}
                         <ul class="sub-menu">
                             {#if hasPermission(rol, "gatewaysconfig")}
+                                <!--
                                 <li
                                     class={activePath ===
                                     `${baseUrl}/gatewaysconfig`
@@ -229,6 +230,7 @@
                                         >
                                     </a>
                                 </li>
+                        -->
                             {/if}
                             {#if hasPermission(rol, "gateways")}
                                 <li
@@ -257,7 +259,7 @@
                 >
                     <a href="#!" on:click|preventDefault={toggleGDS}>
                         <i class="fa fa-fw fa-plane"></i>
-                        <span class="title">GDS Amadeus</span>
+                        <span class="title">GDS</span>
                         <i class="fa fa-chevron-right chevron"></i>
                     </a>
                     {#if openSubmenu === "gds"}
@@ -274,6 +276,7 @@
                                 </li>
                             {/if}
                             {#if hasPermission(rol, "gdshotel")}
+                                <!----
                                 <li
                                     class={activePath === `${baseUrl}/gdshotel`
                                         ? "active"
@@ -283,6 +286,7 @@
                                         <span class="title">Hoteles</span>
                                     </a>
                                 </li>
+                            -->
                             {/if}
                         </ul>
                     {/if}

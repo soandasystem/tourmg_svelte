@@ -15,6 +15,7 @@
     import School from "./views/admin/school.svelte";
     import Users from "./views/admin/users.svelte";
     import Gateways from "./views/admin/gateways.svelte";
+    import Gdsair from "./views/admin/gdsair.svelte";
     import Quotes from "./views/admin/quotes.svelte";
     import Sales from "./views/admin/sales.svelte";
     import Course from "./views/admin/course.svelte";
@@ -115,6 +116,12 @@
     <Route path="/admin/gateways">
         <MainLayout>
             <Gateways />
+        </MainLayout>
+    </Route>
+
+    <Route path="/admin/gdsair">
+        <MainLayout>
+            <Gdsair />
         </MainLayout>
     </Route>
 

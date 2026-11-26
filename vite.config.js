@@ -24,7 +24,7 @@ export default defineConfig({
     allowedHosts: true,
     proxy: {
       '/proxy-api': {
-        target: 'https://tourmg-go.onrender.com',
+        target: 'http://localhost:8080', // 'https://tourmg-go.onrender.com',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/proxy-api/, '/api'),
